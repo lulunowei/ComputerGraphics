@@ -1241,6 +1241,52 @@ uint32_t Triangle::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pro
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
+/**
+ * @descrip 创建多个缓冲区用于传递顶点信息
+ * 
+ * @functionName:  createBuffer
+ * @functionType:    void
+ * @param size
+ * @param usage
+ * @param properties
+ * @param buffer
+ * @param bufferMemory
+ */
+void Triangle::createBuffer(VkDeviceSize size,
+	VkBufferUsageFlags usage, 
+	VkMemoryPropertyFlags properties,
+	VkBuffer& buffer, 
+	VkDeviceMemory& bufferMemory)
+{
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;//独占
+
+	//1.创建顶点缓冲区
+	if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create buffer!");
+	}
+	//2.查询内存需求
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+
+	//3.分配内存
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate buffer memory!");
+	}
+
+	//4.绑定缓冲区和内存
+	vkBindBufferMemory(device, buffer, bufferMemory, 0);
+}
+	
+
 
 
 
