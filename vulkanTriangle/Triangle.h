@@ -1,0 +1,213 @@
+#pragma once
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include"const.h"
+#include "FileUtils.h"
+#include"VertexData.h"
+
+
+constexpr std::uint32_t WIDTH = 800;
+constexpr std::uint32_t HEIGHT = 600;
+const int MAX_FRAMES_IN_FLIGHT = 2;//定义同时处理的帧数
+
+const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif // !NDEBUG
+
+
+
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator,
+    VkDebugUtilsMessengerEXT* pDebugMessenger);
+
+void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+    VkDebugUtilsMessengerEXT debugMessenger,
+    const VkAllocationCallbacks* pAllocator);
+
+/**
+ * 存储 Vulkan 设备队列族
+ */
+struct QueueFamilyIndices {
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+
+    bool isComplete() {
+        return graphicsFamily.has_value() && presentFamily.has_value();
+    }
+};
+
+/**
+ * 存储 Vulkan 设备支持的交换链相关信息.
+ */
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
+
+
+class Triangle
+{
+public:
+    void run() {
+        initWindow();
+        initVulkan();
+        mainLoop();  //主循环
+        cleanup();  //释放资源
+    }
+
+private:
+
+    void initVulkan();
+
+    void mainLoop();
+
+    void cleanup();
+
+    void initWindow();
+
+    void createInstance();//创建vulkan实例
+
+    void setupDebugMessenger();//创建调试消息的接收器
+
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);//封装调试消息的创建信息
+
+    std::vector<const char*> getRequiredExtensions();//获取与 GLFW 配合使用时所需的 Vulkan 扩展
+
+    bool checkValidationLayerSupport();//检查一个或多个 Vulkan 验证层是否在系统的 Vulkan 安装中可用
+
+    void pickPhysicalDevice();//选择一个物理设备
+
+    bool isDeviceSuitable(VkPhysicalDevice device);//检查物理设备是否满足我们的需求
+
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);//查找queue族
+
+    void createLogicalDevice();//创建逻辑设备
+
+    void createSurface();//创建表面
+
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);//检查物理设备是否支持需要的扩展
+
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);//swapchain的属性查询
+
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);//选择合适的swapchain格式
+
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);//选择合适的swapchain显示模式
+
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);//选择合适的swapchain分辨率
+
+    void createSwapChain();//创建swapchain
+
+    void createImageViews();//创建图像视图
+
+    void createGraphicsPipeline();//创建图形管道
+
+    VkShaderModule createShaderModule(const std::vector<char>& code);//创建着色器模块
+
+    void createRenderPass();//创建渲染流程
+
+    void createFramebuffers();//创建framebuffers
+
+    void createCommandPool();//创建命令池
+
+    void createCommandBuffers();//创建命令缓冲区
+
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);//记录命令缓冲区
+
+    void drawFrame();//绘制一帧
+
+    void createSyncObjects();//创建同步对象
+
+    void cleanupSwapChain();//清理swapchain
+
+    void recreateSwapChain();//重新创建swapchain，用于窗口大小改变
+
+    void createVertexBuffer();//创建顶点缓冲区
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+
+    //静态的回调函数
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData) {
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+        return VK_FALSE;//返回true调用程序会终止
+    }
+
+    // 窗口大小改变的回调函数
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto app = reinterpret_cast<Triangle*>(glfwGetWindowUserPointer(window));
+        app->framebufferResized = true;
+    }
+
+private:
+    GLFWwindow* window;
+
+    VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;//句柄，引用调试消息的接收器
+    VkSurfaceKHR surface;//Vulkan 窗口表面
+
+
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;//物理设备句柄，隐式销毁
+    VkDevice device;//逻辑设备句柄
+
+    VkQueue graphicsQueue;//图形队列
+
+    VkQueue presentQueue;//显示队列
+
+    VkSwapchainKHR swapChain;//swapchain句柄
+
+    std::vector<VkImage> swapChainImages;//swapchain图像句柄，资源图，不允许采样或者渲染
+
+    VkFormat swapChainImageFormat;//swapchain图像格式
+
+    VkExtent2D swapChainExtent;//swapchain图像分辨率
+
+    std::vector<VkImageView> swapChainImageViews;//swapchain图像视图
+
+    VkRenderPass renderPass;//渲染流程
+
+    VkPipelineLayout pipelineLayout;//图形管道布局
+
+    VkPipeline graphicsPipeline;//图形管道,用于被继承
+
+    std::vector<VkFramebuffer> swapChainFramebuffers;//framebuffers
+
+    VkCommandPool commandPool;//命令池
+
+    std::vector<VkCommandBuffer> commandBuffers;;//命令
+
+    //显式等待信号量
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    //显式等待信号量
+    std::vector<VkFence> inFlightFences;
+
+    uint32_t currentFrame = 0;
+
+    bool framebufferResized = false;//窗口大小是否改变
+
+    VkBuffer vertexBuffer;//顶点缓冲区
+
+    VkDeviceMemory vertexBufferMemory;//顶点缓冲区内存
+
+
+};
+
+
