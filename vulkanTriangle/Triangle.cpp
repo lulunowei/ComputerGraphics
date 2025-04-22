@@ -1,5 +1,5 @@
 #include "Triangle.h"
-
+using namespace myVertexData;
 /**
  * @descrip 初始化Vulkan
  *
@@ -1003,7 +1003,7 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
 	//vkCmdDraw(commandBuffer, 3, 1, 0, 0);//绘制三角形
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(myVertexData::vertices.size()), 1, 0, 0);
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 	//vkCmdDraw(commandBuffer, 10, 1, 0, 0);//绘制五角星
 
 
@@ -1179,43 +1179,35 @@ void Triangle::recreateSwapChain()
  */
 void Triangle::createVertexBuffer()
 {
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = sizeof(myVertexData::vertices[0]) * myVertexData::vertices.size();
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;//指定用途:vertex_buffer
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	
+	VkBuffer stagingBuffer;//缓冲区
+	VkDeviceMemory stagingBufferMemory;//缓冲区内存
 
-	//创建缓冲区的描述对象，并没有真正分配内存
-	if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create vertex buffer!");
-	}
-
-	VkMemoryRequirements memRequirements;
-	//查询vertexBuffer的内存需求，并不会分配内存
-	vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	//想让被CPU看到(HOST_VISIBLE)并且自动刷新同步(HOST_COHERENT)
-	//cpu需要写入GPU显存，并且需要自动同步
-	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-	//VkDeviceMemory vertexBufferMemory;
-	//分配内存
-	if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate vertex buffer memory!");
-	}
-
-	//关联缓冲区和内存
-	vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+	//创建CPU内存
+	createBuffer(bufferSize,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,// 缓冲区用作内存传的数据源
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		stagingBuffer,
+		stagingBufferMemory);
 
 	void* data;
-	vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);//GPU映射到CPU
-	memcpy(data, myVertexData::vertices.data(), (size_t)bufferInfo.size);
-	vkUnmapMemory(device, vertexBufferMemory);//取消映射
+	vkMapMemory(device, stagingBufferMemory, 0, (size_t)bufferSize, 0, &data);//GPU映射到CPU
+	memcpy(data, vertices.data(), (size_t)bufferSize);
+	vkUnmapMemory(device, stagingBufferMemory);//取消映射
 
+	//创建GPU内存
+	createBuffer(bufferSize,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,// 缓冲区用作内存传的输出
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		vertexBuffer,
+		vertexBufferMemory);
+
+	//录制拷贝命令，将CPU准备好的内存数据移动到GPU显存
+	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
 /**
@@ -1246,11 +1238,11 @@ uint32_t Triangle::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pro
  * 
  * @functionName:  createBuffer
  * @functionType:    void
- * @param size
- * @param usage
- * @param properties
- * @param buffer
- * @param bufferMemory
+ * @param size 缓冲区大小
+ * @param usage 缓冲区用途
+ * @param properties 内存属性
+ * @param buffer 缓冲区写入句柄
+ * @param bufferMemory 内存句柄
  */
 void Triangle::createBuffer(VkDeviceSize size,
 	VkBufferUsageFlags usage, 
@@ -1265,10 +1257,10 @@ void Triangle::createBuffer(VkDeviceSize size,
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;//独占
 
 	//1.创建顶点缓冲区
-	if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+	if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create buffer!");
 	}
-	//2.查询内存需求
+	//2.查询vertexBuffer内存需求
 	VkMemoryRequirements memRequirements;
 	vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 
@@ -1284,6 +1276,56 @@ void Triangle::createBuffer(VkDeviceSize size,
 
 	//4.绑定缓冲区和内存
 	vkBindBufferMemory(device, buffer, bufferMemory, 0);
+}
+
+/**
+ * @descrip 从CPU内存拷贝到GPU显存
+ * 
+ * @functionName:  copyBuffer
+ * @functionType:    void
+ * @param srcBuffer 源缓存区
+ * @param dstBuffer 目标缓存区
+ * @param size 缓存区大小
+ */
+void Triangle::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = commandPool;//指定哪个池子
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;//1。primary 从主命令缓冲区 2.SECONDARY 从次级命令缓冲区
+	allocInfo.commandBufferCount = 1;//分配的缓冲区数量
+
+	VkCommandBuffer commandBuffer;
+	//1分配临时命令缓冲区
+	vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+	//2开始录制命令
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // 仅使用一次命令缓冲区
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+		VkBufferCopy copyRegion{};
+		//copyRegion.srcOffset = 0; // Optional
+		//copyRegion.dstOffset = 0; // Optional
+		copyRegion.size = size;
+		vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	//结束录制命令
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	//3提交命令
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphicsQueue);//等待GPU完成所有任务，CPU阻塞
+
+	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 	
 

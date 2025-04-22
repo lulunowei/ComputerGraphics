@@ -145,6 +145,11 @@ private:
         VkBuffer& buffer,
         VkDeviceMemory& bufferMemory);//创建多个缓冲区
 
+    //从CPU内存拷贝到GPU显存
+    void copyBuffer(VkBuffer srcBuffer,
+        VkBuffer dstBuffer,
+        VkDeviceSize size);
+
 
     //静态的回调函数
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
