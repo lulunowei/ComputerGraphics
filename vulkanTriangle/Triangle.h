@@ -137,6 +137,8 @@ private:
 
     void createVertexBuffer();//创建顶点缓冲区
 
+    void createIndexBuffer();//创建索引缓冲区
+
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     void createBuffer(VkDeviceSize size,
@@ -217,6 +219,10 @@ private:
     VkBuffer vertexBuffer;//顶点缓冲区
 
     VkDeviceMemory vertexBufferMemory;//顶点缓冲区内存
+
+    VkBuffer indexBuffer;//索引缓冲区
+
+    VkDeviceMemory indexBufferMemory;//索引缓冲区内存
 
 
 };

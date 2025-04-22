@@ -1,5 +1,6 @@
 #include "Triangle.h"
 using namespace myVertexData;
+using namespace myVertexData::rectangle;
 /**
  * @descrip 初始化Vulkan
  *
@@ -20,6 +21,7 @@ void Triangle::initVulkan()
 	createFramebuffers();//创建帧缓冲
 	createCommandPool();//创建命令池
 	createVertexBuffer();//创建顶点缓冲区
+	createIndexBuffer();//创建索引缓冲区
 	createCommandBuffers();//创建命令缓冲
 	createSyncObjects();//创建信号量
 
@@ -54,6 +56,9 @@ void Triangle::cleanup()
 	vkDestroyPipeline(device, graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyRenderPass(device, renderPass, nullptr);
+
+	vkDestroyBuffer(device, indexBuffer, nullptr);//释放索引缓存区
+	vkFreeMemory(device, indexBufferMemory, nullptr);//释放索引内存
 
 	vkDestroyBuffer(device, vertexBuffer, nullptr);//释放顶点缓存区
 	vkFreeMemory(device, vertexBufferMemory, nullptr);//释放顶点内存
@@ -981,31 +986,31 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);//启动渲染通道
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);//绑定图形管线
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);//绑定图形管线
 
-	//动态设置视口和裁剪矩形
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(swapChainExtent.width);
-	viewport.height = static_cast<float>(swapChainExtent.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		//动态设置视口和裁剪矩形
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>(swapChainExtent.width);
+		viewport.height = static_cast<float>(swapChainExtent.height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = swapChainExtent;
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		VkRect2D scissor{};
+		scissor.offset = { 0, 0 };
+		scissor.extent = swapChainExtent;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	VkBuffer vertexBuffers[] = { vertexBuffer };
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+		VkBuffer vertexBuffers[] = { vertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);//绑定顶点缓冲
 
-	//vkCmdDraw(commandBuffer, 3, 1, 0, 0);//绘制三角形
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-	//vkCmdDraw(commandBuffer, 10, 1, 0, 0);//绘制五角星
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);//绑定索引缓冲
 
+		//vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);//结束渲染通道
 
@@ -1179,7 +1184,7 @@ void Triangle::recreateSwapChain()
  */
 void Triangle::createVertexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	VkDeviceSize bufferSize = sizeof(rectangle::vertices[0]) * (rectangle::vertices.size());
 	
 	VkBuffer stagingBuffer;//缓冲区
 	VkDeviceMemory stagingBufferMemory;//缓冲区内存
@@ -1193,7 +1198,7 @@ void Triangle::createVertexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, (size_t)bufferSize, 0, &data);//GPU映射到CPU
-	memcpy(data, vertices.data(), (size_t)bufferSize);
+	memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);//取消映射
 
 	//创建GPU内存
@@ -1205,6 +1210,42 @@ void Triangle::createVertexBuffer()
 
 	//录制拷贝命令，将CPU准备好的内存数据移动到GPU显存
 	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+/**
+ * @descrip 创建索引缓冲区
+ * 
+ * @functionName:  createIndexBuffer
+ * @functionType:    void
+ */
+void Triangle::createIndexBuffer()
+{
+	auto bufferSize=sizeof(rectangle::indices[0])* (rectangle::indices.size());
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+
+	createBuffer(bufferSize,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		stagingBuffer,
+		stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, rectangle::indices.data(), (size_t)bufferSize);
+	vkUnmapMemory(device, stagingBufferMemory);
+
+	createBuffer(bufferSize,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		indexBuffer,
+		indexBufferMemory);
+
+	copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
