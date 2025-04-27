@@ -1,10 +1,13 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
+#define GLM_FORCE_RADIANS
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>//用于生成MVP变换
 #include"const.h"
 #include "FileUtils.h"
 #include"VertexData.h"
+#include"Matrix.h"
 
 
 constexpr std::uint32_t WIDTH = 800;
@@ -113,6 +116,8 @@ private:
 
     void createImageViews();//创建图像视图
 
+    void createDescriptorSetLayout();//创建描述符布局
+
     void createGraphicsPipeline();//创建图形管道
 
     VkShaderModule createShaderModule(const std::vector<char>& code);//创建着色器模块
@@ -127,6 +132,8 @@ private:
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);//记录命令缓冲区
 
+    void updateUniformBuffer(uint32_t currentImage);//更新全局数据
+
     void drawFrame();//绘制一帧
 
     void createSyncObjects();//创建同步对象
@@ -138,6 +145,12 @@ private:
     void createVertexBuffer();//创建顶点缓冲区
 
     void createIndexBuffer();//创建索引缓冲区
+
+    void createUniformBuffers();//创建统一资源缓冲区
+
+    void createDescriptorPool();//创建描述集池
+
+    void createDescriptorSets();//创建描述符集
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
@@ -196,6 +209,7 @@ private:
 
     VkRenderPass renderPass;//渲染流程
 
+    VkDescriptorSetLayout descriptorSetLayout;//描述符绑定，指定管线访问的资源
     VkPipelineLayout pipelineLayout;//图形管道布局
 
     VkPipeline graphicsPipeline;//图形管道,用于被继承
@@ -217,12 +231,17 @@ private:
     bool framebufferResized = false;//窗口大小是否改变
 
     VkBuffer vertexBuffer;//顶点缓冲区
-
     VkDeviceMemory vertexBufferMemory;//顶点缓冲区内存
 
     VkBuffer indexBuffer;//索引缓冲区
-
     VkDeviceMemory indexBufferMemory;//索引缓冲区内存
+
+    std::vector<VkBuffer> uniformBuffers;//统一资源缓冲区
+    std::vector<VkDeviceMemory> uniformBuffersMemory;//统一资源内存
+    std::vector<void*> uniformBuffersMapped;//统一资源映射
+
+    VkDescriptorPool descriptorPool;//描述符集池
+    std::vector<VkDescriptorSet> descriptorSets;//描述符集合
 
 
 };

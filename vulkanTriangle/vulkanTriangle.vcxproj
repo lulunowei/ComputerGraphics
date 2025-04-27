@@ -145,12 +145,14 @@
   <ItemGroup>
     <ClCompile Include="FileUtils.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="Triangle.cpp" />
     <ClCompile Include="VertexData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="const.h" />
     <ClInclude Include="FileUtils.h" />
+    <ClInclude Include="Matrix.h" />
     <ClInclude Include="Triangle.h" />
     <ClInclude Include="VertexData.h" />
   </ItemGroup>

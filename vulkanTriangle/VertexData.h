@@ -23,6 +23,7 @@ namespace myVertexData {
 
     // vertex attributes:position and color
        //描述怎么获取到vertex数据
+       // 
     //定义一个缓冲区，里面有两个字段：位置和颜色
     static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
         std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};

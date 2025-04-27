@@ -1,6 +1,7 @@
 #include "Triangle.h"
 using namespace myVertexData;
 using namespace myVertexData::rectangle;
+using namespace matrixTransform;
 /**
  * @descrip 初始化Vulkan
  *
@@ -17,11 +18,15 @@ void Triangle::initVulkan()
 	createSwapChain();//创建交换链
 	createImageViews();//创建图像视图
 	createRenderPass();//创建渲染流程
+	createDescriptorSetLayout();//创建描述符布局
 	createGraphicsPipeline();//创建图形管道
 	createFramebuffers();//创建帧缓冲
 	createCommandPool();//创建命令池
 	createVertexBuffer();//创建顶点缓冲区
 	createIndexBuffer();//创建索引缓冲区
+	createUniformBuffers();//创建统一资源缓冲区
+	createDescriptorPool();//创建统一资源池
+	createDescriptorSets();//创建统一资源集合
 	createCommandBuffers();//创建命令缓冲
 	createSyncObjects();//创建信号量
 
@@ -56,6 +61,14 @@ void Triangle::cleanup()
 	vkDestroyPipeline(device, graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyRenderPass(device, renderPass, nullptr);
+
+	for (unsigned int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		vkDestroyBuffer(device, uniformBuffers[i], nullptr);//释放统一资源缓存
+		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);//释放统一资源内存
+	}
+
+	vkDestroyDescriptorPool(device, descriptorPool, nullptr);//释放描述符池
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);//释放资源描述符布局
 
 	vkDestroyBuffer(device, indexBuffer, nullptr);//释放索引缓存区
 	vkFreeMemory(device, indexBufferMemory, nullptr);//释放索引内存
@@ -649,6 +662,30 @@ void Triangle::createImageViews()
 		}
 	}
 }
+/**
+ * @descrip 创建描述符布局，类似绑定顶点属性和location索引
+ * 
+ * @functionName:  createDescriptorSetLayout
+ * @functionType:    void
+ */
+void Triangle::createDescriptorSetLayout()
+{
+	VkDescriptorSetLayoutBinding uboLayoutBinding{};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorCount = 1;//只有一个uniform buffer
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;//着色器阶段
+	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &uboLayoutBinding;
+
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout!");
+	}
+}
 
 /**
  * @descrip 创建图形管道
@@ -667,84 +704,84 @@ void Triangle::createGraphicsPipeline()
 
 	//创建vertext shader
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;//着色阶段：顶点着色阶段
-	vertShaderStageInfo.module = vertShaderModule;
-	vertShaderStageInfo.pName = "main";
+		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;//着色阶段：顶点着色阶段
+		vertShaderStageInfo.module = vertShaderModule;
+		vertShaderStageInfo.pName = "main";
 
 	//创建fragment shader
 	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo.module = fragShaderModule;
-	fragShaderStageInfo.pName = "main";
+		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		fragShaderStageInfo.module = fragShaderModule;
+		fragShaderStageInfo.pName = "main";
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };//保存到数组
 
-	//vertex shader的输入信息
+	//vertex shader顶点的输入信息
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 
-	auto bindingDescription = myVertexData::Vertex::getBindingDescription();
-	auto attributeDescriptions = myVertexData::getAttributeDescriptions();
+		auto bindingDescription = myVertexData::Vertex::getBindingDescription();
+		auto attributeDescriptions = myVertexData::getAttributeDescriptions();
 
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	//vertexInputInfo.vertexBindingDescriptionCount = 0;
-	//vertexInputInfo.vertexAttributeDescriptionCount = 0;
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		//vertexInputInfo.vertexBindingDescriptionCount = 0;
+		//vertexInputInfo.vertexAttributeDescriptionCount = 0;
 
-	//绑定描述和属性
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());//顶点属性数量
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;//描述顶点结构
-	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();//描述结构体字段
+		//绑定描述和属性
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());//顶点属性数量
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;//描述顶点结构
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();//描述结构体字段
 
 
 
 	//顶点数据组织成几何图元
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;//每三个顶点组成三角形
-	//inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-	inputAssembly.primitiveRestartEnable = VK_FALSE;
+		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;//每三个顶点组成三角形
+		//inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	//视口和裁剪
 	VkPipelineViewportStateCreateInfo viewportState{};
-	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewportState.viewportCount = 1;
-	viewportState.scissorCount = 1;
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.viewportCount = 1;
+		viewportState.scissorCount = 1;
 
 	//光栅化变成片元
 	VkPipelineRasterizationStateCreateInfo rasterizer{};
-	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer.depthClampEnable = VK_FALSE;
-	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-	rasterizer.depthBiasEnable = VK_FALSE;
+		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizer.depthClampEnable = VK_FALSE;
+		rasterizer.rasterizerDiscardEnable = VK_FALSE;
+		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.lineWidth = 1.0f;
+		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;//
+		rasterizer.depthBiasEnable = VK_FALSE;
 
 	//多重采样
 	VkPipelineMultisampleStateCreateInfo multisampling{};
-	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampling.sampleShadingEnable = VK_FALSE;//默认一次采样
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;//不使用MSAA
+		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampling.sampleShadingEnable = VK_FALSE;//默认一次采样
+		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;//不使用MSAA
 
 	//颜色混合
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable = VK_FALSE;
+		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		colorBlendAttachment.blendEnable = VK_FALSE;
 
 	//全局配置颜色混合
 	VkPipelineColorBlendStateCreateInfo colorBlending{};
-	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	colorBlending.logicOpEnable = VK_FALSE;
-	colorBlending.logicOp = VK_LOGIC_OP_COPY;
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
-	colorBlending.blendConstants[0] = 0.0f;
-	colorBlending.blendConstants[1] = 0.0f;
-	colorBlending.blendConstants[2] = 0.0f;
-	colorBlending.blendConstants[3] = 0.0f;
+		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlending.logicOpEnable = VK_FALSE;
+		colorBlending.logicOp = VK_LOGIC_OP_COPY;
+		colorBlending.attachmentCount = 1;
+		colorBlending.pAttachments = &colorBlendAttachment;
+		colorBlending.blendConstants[0] = 0.0f;
+		colorBlending.blendConstants[1] = 0.0f;
+		colorBlending.blendConstants[2] = 0.0f;
+		colorBlending.blendConstants[3] = 0.0f;
 
 	//声明视口和剪裁区域为动态状态
 	std::vector<VkDynamicState> dynamicStates = {
@@ -752,15 +789,16 @@ void Triangle::createGraphicsPipeline()
 		  VK_DYNAMIC_STATE_SCISSOR
 	};
 	VkPipelineDynamicStateCreateInfo dynamicState{};
-	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-	dynamicState.pDynamicStates = dynamicStates.data();
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+		dynamicState.pDynamicStates = dynamicStates.data();
 
 	//声明管线布局，用于访问外部资源
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;//创建的管线绑定描述符布局
+	//pipelineLayoutInfo.pushConstantRangeCount = 0;
 
 	//创建管线布局
 	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
@@ -781,14 +819,10 @@ void Triangle::createGraphicsPipeline()
 	pipelineInfo.pDepthStencilState = nullptr; // Optional
 	pipelineInfo.pColorBlendState = &colorBlending;//颜色混合
 	pipelineInfo.pDynamicState = &dynamicState;//动态裁剪
-
 	pipelineInfo.layout = pipelineLayout;//布局
-
 	pipelineInfo.renderPass = renderPass;//绑定的RenderPass
 	pipelineInfo.subpass = 0;
-
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-	pipelineInfo.basePipelineIndex = -1; // Optional
 
 	//创建管线
 	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
@@ -1009,6 +1043,17 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);//绑定索引缓冲
 
+		vkCmdBindDescriptorSets(commandBuffer,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,//绑定到图形管线
+			pipelineLayout, 
+			0,//set编号：0
+			1,//一次绑定一个set
+			&descriptorSets[currentFrame],//绑定的descriptor set
+			0,
+			nullptr);
+
+		//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);//绑定索引缓冲
+
 		//vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -1017,6 +1062,43 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to record command buffer!");
 	}
+}
+
+/**
+ * @descrip 更新全局数据
+ * 
+ * @functionName:  updateUniformBuffer
+ * @functionType:    void
+ * @param currentImage
+ */
+void Triangle::updateUniformBuffer(uint32_t currentImage)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	//以浮点精度计算自渲染开始以来的秒数
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	
+	UniformBufferObject ubo{};
+	ubo.model = glm::rotate(glm::mat4(1.0f),//单位矩阵
+		time * glm::radians(90.0f),//每秒旋转90°
+		glm::vec3(0.0f, 0.0f, 1.0f));
+
+	//从上方以 45 度角观察几何形状
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
+		glm::vec3(0.0f, 0.0f, 0.0f), 
+		glm::vec3(0.0f, 0.0f, 1.0f));
+
+	// 45 度垂直视场角的透视投影
+	ubo.proj = glm::perspective(glm::radians(25.0f),
+		swapChainExtent.width / (float)swapChainExtent.height,
+		0.1f, 
+		10.0f);
+
+	//翻转 Y 轴缩放因子，与OPENGL相反
+	ubo.proj[1][1] *= -1;
+	//复制数据到统一缓冲区，uniformBuffersMapped指针指向该内存
+	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 
@@ -1046,6 +1128,8 @@ void Triangle::drawFrame()
 	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
+
+	updateUniformBuffer(currentFrame);//更新全局数据
 
 	// Only reset the fence if we are submitting work,延迟重置,仅在确认提交任务前重置栅栏，防止重新创建交换链的时候直接返回，导致fence永远不能重置
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);//重置栅栏
@@ -1196,9 +1280,9 @@ void Triangle::createVertexBuffer()
 		stagingBuffer,
 		stagingBufferMemory);
 
-	void* data;
+	void* data;//data是能直接内存拷贝的指针
 	vkMapMemory(device, stagingBufferMemory, 0, (size_t)bufferSize, 0, &data);//GPU映射到CPU
-	memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);
+	memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
 	vkUnmapMemory(device, stagingBufferMemory);//取消映射
 
 	//创建GPU内存
@@ -1249,6 +1333,103 @@ void Triangle::createIndexBuffer()
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+/**
+ * @descrip 创建统一资源缓冲区
+ * 
+ * @functionName:  createUniformBuffers
+ * @functionType:    void
+ */
+void Triangle::createUniformBuffers()
+{
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		createBuffer(bufferSize,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			uniformBuffers[i], //逻辑内存
+			uniformBuffersMemory[i]);//物理内存
+		//持久映射，uniformBuffersMapped指向缓冲区数据
+		vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+	}
+}
+
+/**
+ * @descrip 创建描述集池
+ * 
+ * @functionName:  createDescriptorPool
+ * @functionType:    void
+ */
+void Triangle::createDescriptorPool()
+{
+	VkDescriptorPoolSize poolSize{};//申明需要的uniformBuffer个数
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;//枚举值：6
+	poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);//总共的槽位
+
+	VkDescriptorPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;//枚举值:33
+	poolInfo.poolSizeCount = 1;//池子类型只有UNIFORM_BUFFER
+	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);//最大描述符集数量
+
+	//创建描述符集池
+	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor pool!");
+	}
+}
+
+/**
+ * @descrip 创建描述符集
+ * 
+ * @functionName:  createDescriptorSets
+ * @functionType:    void
+ */
+void Triangle::createDescriptorSets()
+{
+	//一次性创建多个set,绑定到同个描述符布局
+	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;//通过池分配set
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);//指定layouts长度
+	allocInfo.pSetLayouts = layouts.data();//为每个分配的描述符集指明描述符布局
+
+	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	//分配描述符集，设置句柄保留sets副本
+	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
+
+	//填充描述符，把哪个 VkBuffer 绑定到哪个 set 的哪个 binding 插槽
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VkDescriptorBufferInfo bufferInfo{};
+		bufferInfo.buffer = uniformBuffers[i];//指定缓冲区
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(UniformBufferObject);
+
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSets[i];
+		descriptorWrite.dstBinding = 0;//指定统一描述符索引是0
+		descriptorWrite.dstArrayElement = 0;//没使用数组，从索引为0开始
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;//再次指定描述符类型
+		descriptorWrite.descriptorCount = 1;//更新描述符数组元素数量
+
+		descriptorWrite.pBufferInfo = &bufferInfo;
+		descriptorWrite.pImageInfo = nullptr; // Optional
+		descriptorWrite.pTexelBufferView = nullptr; // Optional
+		//vulkan进行绑定vkbuffer到set的binding槽上
+		vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+	}
+
+
 }
 
 /**
@@ -1308,6 +1489,7 @@ void Triangle::createBuffer(VkDeviceSize size,
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
+	//查询物理设备能支持的内存类型
 	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
 	//3.分配内存
@@ -1325,8 +1507,8 @@ void Triangle::createBuffer(VkDeviceSize size,
  * @functionName:  copyBuffer
  * @functionType:    void
  * @param srcBuffer 源缓存区
- * @param dstBuffer 目标缓存区
  * @param size 缓存区大小
+ * @param dstBuffer 目标缓存区
  */
 void Triangle::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
@@ -1368,6 +1550,8 @@ void Triangle::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize s
 
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
+
+
 	
 
 
