@@ -76,7 +76,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;C:\Environment\cppsoft\stb_master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -94,7 +94,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;C:\Environment\cppsoft\stb_master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -112,7 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;C:\Environment\cppsoft\stb_master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -130,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\code\C++\Project\DGWrap\DGEngine\Thirdparty\glm;C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\Vulcan_1.4\Include;C:\Environment\cppsoft\stb_master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>

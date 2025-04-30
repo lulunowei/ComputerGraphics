@@ -1,6 +1,7 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #define GLM_FORCE_RADIANS
+//#define STB_IMAGE_IMPLEMENTATION
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>//用于生成MVP变换
@@ -130,6 +131,13 @@ private:
 
     void createCommandBuffers();//创建命令缓冲区
 
+    void transitionImageLayout(VkImage image,
+        VkFormat format,
+        VkImageLayout oldLayout, 
+        VkImageLayout newLayout);//处理图像布局转换
+
+    void createTextureImage();//创建纹理图
+
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);//记录命令缓冲区
 
     void updateUniformBuffer(uint32_t currentImage);//更新全局数据
@@ -158,12 +166,31 @@ private:
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
-        VkDeviceMemory& bufferMemory);//创建多个缓冲区
+        VkDeviceMemory& bufferMemory);//创建缓冲区
+
+    void createImage(uint32_t width, uint32_t height,
+        VkFormat format,
+        VkImageTiling tiling,
+        VkImageUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkImage& image,
+        VkDeviceMemory& imageMemory);//创建图像缓冲区
+
+    VkCommandBuffer beginSingleTimeCommands();//单次开始创建命令
+
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);//单次结束录制命令
 
     //从CPU内存拷贝到GPU显存
     void copyBuffer(VkBuffer srcBuffer,
         VkBuffer dstBuffer,
         VkDeviceSize size);
+
+    //从CPU内存拷贝到GPU显存(图像)
+    void copyBufferToImage(VkBuffer buffer,
+        VkImage image,
+        uint32_t width, uint32_t height);
+
+
 
 
     //静态的回调函数
@@ -243,7 +270,11 @@ private:
     VkDescriptorPool descriptorPool;//描述符集池
     std::vector<VkDescriptorSet> descriptorSets;//描述符集合
 
+    VkBuffer stagingBuffer;//暂存缓存
+    VkDeviceMemory stagingBufferMemory;//暂存缓存内存
 
+    VkImage textureImage;//图像缓存
+    VkDeviceMemory textureImageMemory;//图像缓存内存
 };
 
 

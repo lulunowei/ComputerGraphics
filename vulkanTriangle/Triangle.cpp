@@ -1,7 +1,9 @@
 #include "Triangle.h"
+#define STB_IMAGE_IMPLEMENTATION//stb头文件包含实现函数实现，只有#include会发生链接错误
 using namespace myVertexData;
 using namespace myVertexData::rectangle;
 using namespace matrixTransform;
+#include <stb_image.h>
 /**
  * @descrip 初始化Vulkan
  *
@@ -22,6 +24,7 @@ void Triangle::initVulkan()
 	createGraphicsPipeline();//创建图形管道
 	createFramebuffers();//创建帧缓冲
 	createCommandPool();//创建命令池
+	//createTextureImage();//创建纹理图片
 	createVertexBuffer();//创建顶点缓冲区
 	createIndexBuffer();//创建索引缓冲区
 	createUniformBuffers();//创建统一资源缓冲区
@@ -58,6 +61,7 @@ void Triangle::cleanup()
 {
 	cleanupSwapChain();
 
+
 	vkDestroyPipeline(device, graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyRenderPass(device, renderPass, nullptr);
@@ -68,6 +72,10 @@ void Triangle::cleanup()
 	}
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);//释放描述符池
+
+	vkDestroyImage(device, textureImage, nullptr);
+	vkFreeMemory(device, textureImageMemory, nullptr);
+
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);//释放资源描述符布局
 
 	vkDestroyBuffer(device, indexBuffer, nullptr);//释放索引缓存区
@@ -967,6 +975,57 @@ void Triangle::createCommandPool()
 }
 
 /**
+ * @descrip 开启一个一次性使用的命令缓冲区
+ * 
+ * @functionName:  beginSingleTimeCommands
+ * @functionType:    VkCommandBuffer
+ * @return    
+ */
+VkCommandBuffer Triangle::beginSingleTimeCommands()
+{
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = commandPool;//指定哪个池子
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;//1。primary 从主命令缓冲区 2.SECONDARY 从次级命令缓冲区
+	allocInfo.commandBufferCount = 1;//分配的缓冲区数量
+
+	VkCommandBuffer commandBuffer;
+	//1分配临时命令缓冲区
+	vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+	//2开始录制命令
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // 仅使用一次命令缓冲区
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	return commandBuffer;
+}
+
+/**
+ * @descrip 单次结束录制命令
+ * 
+ * @functionName:  endSingleTimeCommands
+ * @functionType:    void
+ */
+void Triangle::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
+	//结束录制命令
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	//3提交命令
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphicsQueue);//等待GPU完成所有任务，CPU阻塞
+
+	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+}
+
+/**
  * @descrip 创建命令缓冲区
  *
  * @functionName:  createCommandBuffer
@@ -975,7 +1034,6 @@ void Triangle::createCommandPool()
 void Triangle::createCommandBuffers()
 {
 	commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);//命令缓冲区的大小
-
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = commandPool;//指定哪个池子
@@ -988,6 +1046,138 @@ void Triangle::createCommandBuffers()
 }
 
 /**
+ * @descrip 处理图像布局转换，定义了图像内存屏障
+ * 
+ * @functionName:  transitionImageLayout
+ * @functionType:    void
+ * @param image  待处理图像
+ * @param format 图像格式
+ * @param oldLayout 原始布局
+ * @param newLayout 转换布局
+ */
+void Triangle::transitionImageLayout(VkImage image, 
+	VkFormat format,
+	VkImageLayout oldLayout,
+	VkImageLayout newLayout)
+{
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.oldLayout = oldLayout;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = image;
+
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		barrier.srcAccessMask = 0; // TODO
+		barrier.dstAccessMask = 0; // TODO
+
+
+		VkPipelineStageFlags sourceStage;
+		VkPipelineStageFlags destinationStage;
+
+		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+			barrier.srcAccessMask = 0;//不需要等待之前的操作完成，设置为0
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;//目标掩码
+
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;//源阶段中，图像没有参与其他操作
+			destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;//目标阶段是传输
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;//等待传输完成
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;//完成后进行shader读取
+
+			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;//源阶段是传输
+			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;//目标阶段是 片段着色器中读取纹理
+		}
+		else {
+			throw std::invalid_argument("unsupported layout transition!");
+		}
+		//提交屏障
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			sourceStage, destinationStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+	endSingleTimeCommands(commandBuffer);
+}
+
+/**
+ * @descrip 创建纹理图
+ * 
+ * @functionName:  createTextureImage
+ * @functionType:    void
+ */
+void Triangle::createTextureImage()
+{
+	int texWidth, texHeight, texChannels;
+	//返回像素值数组的第一个元素
+	stbi_uc* pixels = stbi_load("textures/texture.jpg",
+		&texWidth,
+		&texHeight,
+		&texChannels,
+		STBI_rgb_alpha);
+	VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+	if (!pixels) {
+		throw std::runtime_error("failed to load texture image!");
+	}
+
+	createBuffer(imageSize,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		stagingBuffer,
+		stagingBufferMemory
+	);//创建了一块vulkan管理的内存区，绑定到缓冲区对象stagingBuffer
+
+	void* data;
+	vkMapMemory(device,stagingBufferMemory,0,imageSize,0,&data);
+		memcpy(data, pixels, static_cast<size_t>(imageSize));
+	vkUnmapMemory(device, stagingBufferMemory);
+
+	stbi_image_free(pixels);
+
+	createImage(static_cast<uint32_t>(texWidth),
+		static_cast<uint32_t>(texHeight),
+		VK_FORMAT_R8G8B8A8_SRGB,//指定图像格式，与输入的纹理图一致
+		VK_IMAGE_TILING_OPTIMAL,//指定纹素排列顺序
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,//指定用途
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,//指定图像内存的属性，存储在GPU本地，不同与HOST_VISIBLE
+		textureImage,
+		textureImageMemory
+	);
+	//转换图像布局
+	transitionImageLayout(textureImage,
+		VK_FORMAT_R8G8B8A8_SRGB,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	//CPU缓存到GPU图像对象
+	copyBufferToImage(stagingBuffer,
+		textureImage,
+		static_cast<uint32_t>(texWidth),
+		static_cast<uint32_t>(texHeight));
+	//转换图像布局，用于着色器访问
+	transitionImageLayout(textureImage,
+		VK_FORMAT_R8G8B8A8_SRGB, 
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+}
+
+/**
  * @descrip 记录命令缓冲区
  *
  * @functionName:  recordCommandBuffer
@@ -997,7 +1187,7 @@ void Triangle::createCommandBuffers()
  */
 void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
-	//初始化开始信息
+	//开始录制命令
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0; // Optional
@@ -1456,7 +1646,7 @@ uint32_t Triangle::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pro
 }
 
 /**
- * @descrip 创建多个缓冲区用于传递顶点信息
+ * @descrip 创建缓冲区用于传递信息
  * 
  * @functionName:  createBuffer
  * @functionType:    void
@@ -1478,7 +1668,7 @@ void Triangle::createBuffer(VkDeviceSize size,
 	bufferInfo.usage = usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;//独占
 
-	//1.创建顶点缓冲区
+	//1.创建缓冲区
 	if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create buffer!");
 	}
@@ -1502,6 +1692,64 @@ void Triangle::createBuffer(VkDeviceSize size,
 }
 
 /**
+ * @descrip 创建图像缓冲区
+ * 
+ * @functionName:  createImage
+ * @functionType:    void
+ * @param width 纹理宽
+ * @param height 纹理高
+ * @param format 图像格式
+ * @param tiling 读取方式
+ * @param usage
+ * @param properties
+ * @param image
+ * @param imageMemory
+ */
+void Triangle::createImage(uint32_t width, uint32_t height,
+	VkFormat format, 
+	VkImageTiling tiling,
+	VkImageUsageFlags usage, 
+	VkMemoryPropertyFlags properties,
+	VkImage& image, 
+	VkDeviceMemory& imageMemory)
+{
+	//创建图像对象，用于存储纹素
+	VkImageCreateInfo imageInfo{};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = width;
+	imageInfo.extent.height = height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = format;//设置与读取纹素相同的格式
+	imageInfo.tiling = tiling;//纹素以实现定义的顺序排列，GPU高效访问
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;//图像在上传时，图像的内容没有意义
+	imageInfo.usage = usage;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;//单样本采样
+	//imageInfo.flags = 0; // Optional
+
+	if (vkCreateImage(device, &imageInfo, nullptr, &textureImage) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create image");
+	}
+
+	VkMemoryRequirements memRequirements;
+	vkGetImageMemoryRequirements(device, image, &memRequirements);//获取图像对象的内存需求
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate image memory!");
+	}
+
+	vkBindImageMemory(device, image, imageMemory, 0);
+}
+
+/**
  * @descrip 从CPU内存拷贝到GPU显存
  * 
  * @functionName:  copyBuffer
@@ -1512,43 +1760,57 @@ void Triangle::createBuffer(VkDeviceSize size,
  */
 void Triangle::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = commandPool;//指定哪个池子
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;//1。primary 从主命令缓冲区 2.SECONDARY 从次级命令缓冲区
-	allocInfo.commandBufferCount = 1;//分配的缓冲区数量
-
-	VkCommandBuffer commandBuffer;
-	//1分配临时命令缓冲区
-	vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-
-	//2开始录制命令
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // 仅使用一次命令缓冲区
-
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
+	VkCommandBuffer commandBuffer=beginSingleTimeCommands();
+		
 		VkBufferCopy copyRegion{};
 		//copyRegion.srcOffset = 0; // Optional
 		//copyRegion.dstOffset = 0; // Optional
 		copyRegion.size = size;
 		vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	//结束录制命令
-	vkEndCommandBuffer(commandBuffer);
+	endSingleTimeCommands(commandBuffer);
 
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
+}
 
-	//3提交命令
-	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(graphicsQueue);//等待GPU完成所有任务，CPU阻塞
+/**
+ * @descrip 从CPU内存拷贝到GPU显存(图像)
+ * 
+ * @functionName:  copyBufferToImage
+ * @functionType:    void
+ * @param buffer 缓冲区
+ * @param image  vulkan图像对象
+ * @param width  宽
+ * @param height 长
+ */
+void Triangle::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+{
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+	VkBufferImageCopy region{};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
 
-	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+	region.imageExtent = {
+		width,
+		height,
+		1
+	};
+	region.imageOffset = { 0,0,0 };
+	region.imageSubresource.aspectMask= VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	vkCmdCopyBufferToImage(
+		commandBuffer,
+		buffer,
+		image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,//表示图像当前正在使用哪种布局
+		1,
+		&region
+	);//缓冲区到图像的复制
+
+	endSingleTimeCommands(commandBuffer);
 }
 
 
