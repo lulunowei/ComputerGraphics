@@ -115,6 +115,8 @@ private:
 
     void createSwapChain();//创建swapchain
 
+    VkImageView createImageView(VkImage image, VkFormat format);//抽象创建视图
+
     void createImageViews();//创建图像视图
 
     void createDescriptorSetLayout();//创建描述符布局
@@ -137,6 +139,8 @@ private:
         VkImageLayout newLayout);//处理图像布局转换
 
     void createTextureImage();//创建纹理图
+
+    void createTextureImageView();//创建纹理视图
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);//记录命令缓冲区
 
@@ -275,6 +279,8 @@ private:
 
     VkImage textureImage;//图像缓存
     VkDeviceMemory textureImageMemory;//图像缓存内存
+    VkImageView textureImageView;//图像视图
+
 };
 
 

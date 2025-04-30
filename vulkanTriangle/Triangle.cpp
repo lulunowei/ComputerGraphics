@@ -24,7 +24,8 @@ void Triangle::initVulkan()
 	createGraphicsPipeline();//创建图形管道
 	createFramebuffers();//创建帧缓冲
 	createCommandPool();//创建命令池
-	//createTextureImage();//创建纹理图片
+	createTextureImage();//创建纹理图片
+	createTextureImageView();//创建纹理视图
 	createVertexBuffer();//创建顶点缓冲区
 	createIndexBuffer();//创建索引缓冲区
 	createUniformBuffers();//创建统一资源缓冲区
@@ -73,6 +74,7 @@ void Triangle::cleanup()
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);//释放描述符池
 
+	vkDestroyImageView(device, textureImageView, nullptr);//释放图像视图
 	vkDestroyImage(device, textureImage, nullptr);
 	vkFreeMemory(device, textureImageMemory, nullptr);
 
@@ -635,6 +637,34 @@ void Triangle::createSwapChain()
 
 
 }
+/**
+ * @descrip 抽象创建视图
+ * 
+ * @functionName:  createImageView
+ * @functionType:    VkImageView
+ * @return    
+ */
+VkImageView Triangle::createImageView(VkImage image, VkFormat format)
+{
+	VkImageViewCreateInfo viewInfo{};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.format = format;
+	viewInfo.image = image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	//指定纹理视图看到的是图像的哪一部分
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	VkImageView imageView;
+	if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create texture image view!");
+	}
+
+	return imageView;
+}
 
 /**
  * @descrip 创建图像视图，每张VKImage都是一个资源图，不能直接用来采样或者渲染
@@ -648,26 +678,9 @@ void Triangle::createImageViews()
 	swapChainImageViews.resize(swapChainImages.size());
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
-		VkImageViewCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = swapChainImages[i];
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;//显示指定2D图像
-		createInfo.format = swapChainImageFormat;//图像的格式，与交换链图像格式保持一致
-		//保持图像原本的分量顺序
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		swapChainImageViews[i] = 
+			createImageView(swapChainImages[i], swapChainImageFormat);//创建视图
 
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
-		//创建图像视图
-		if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create image views!");
-		}
 	}
 }
 /**
@@ -1174,6 +1187,12 @@ void Triangle::createTextureImage()
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+}
+
+void Triangle::createTextureImageView()
+{
+	textureImageView=createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB);//创建视图
 
 }
 
