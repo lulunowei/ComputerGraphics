@@ -2,6 +2,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
+#include <glm/ext/scalar_constants.hpp>
 #include<vector>
 #include<array>
 namespace myVertexData {
@@ -22,9 +23,7 @@ namespace myVertexData {
         }
     }Vertex;
 
-    // vertex attributes:position and color
-       //描述怎么获取到vertex数据
-       // 
+
     //定义一个缓冲区，里面有三个字段：位置和颜色，纹理坐标
     static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
         std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
@@ -71,6 +70,20 @@ namespace myVertexData {
 
         //矩形索引
         const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
+    }
+
+    namespace circle {
+        static constexpr int NUM_SEGMENTS = 64; // 圆弧数量
+        static constexpr float RADIUS = 0.5f;//半径
+
+        //构建圆所需的vertex
+        const std::vector<Vertex> createCircleVertices();
+
+        //构建圆所需的indices
+        const std::vector<uint16_t> createCircleIndices();
+
+        extern const std::vector<Vertex> vertices ;
+        extern const std::vector<uint16_t> indices ;
     }
 
 

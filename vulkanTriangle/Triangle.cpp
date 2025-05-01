@@ -2,6 +2,7 @@
 #define STB_IMAGE_IMPLEMENTATION//stb头文件包含实现函数实现，只有#include会发生链接错误
 using namespace myVertexData;
 using namespace myVertexData::rectangle;
+using namespace myVertexData::circle;
 using namespace matrixTransform;
 #include <stb_image.h>
 /**
@@ -1158,7 +1159,7 @@ void Triangle::createTextureImage()
 {
 	int texWidth, texHeight, texChannels;
 	//返回像素值数组的第一个元素
-	stbi_uc* pixels = stbi_load("textures/earth.jpg",
+	stbi_uc* pixels = stbi_load("textures/texture.jpg",
 		&texWidth,
 		&texHeight,
 		&texChannels,
@@ -1324,7 +1325,8 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 		//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);//绑定索引缓冲
 
 		//vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(circle::indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);//结束渲染通道
 
@@ -1537,7 +1539,8 @@ void Triangle::recreateSwapChain()
  */
 void Triangle::createVertexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(rectangle::vertices[0]) * (rectangle::vertices.size());
+	//VkDeviceSize bufferSize = sizeof(rectangle::vertices[0]) * (rectangle::vertices.size());
+	VkDeviceSize bufferSize = sizeof(circle::vertices[0]) * (circle::vertices.size());
 	
 	VkBuffer stagingBuffer;//缓冲区
 	VkDeviceMemory stagingBufferMemory;//缓冲区内存
@@ -1551,7 +1554,8 @@ void Triangle::createVertexBuffer()
 
 	void* data;//data是能直接内存拷贝的指针
 	vkMapMemory(device, stagingBufferMemory, 0, (size_t)bufferSize, 0, &data);//GPU映射到CPU
-	memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
+	//memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
+	memcpy(data, circle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
 	vkUnmapMemory(device, stagingBufferMemory);//取消映射
 
 	//创建GPU内存
@@ -1576,7 +1580,8 @@ void Triangle::createVertexBuffer()
  */
 void Triangle::createIndexBuffer()
 {
-	auto bufferSize=sizeof(rectangle::indices[0])* (rectangle::indices.size());
+	//auto bufferSize=sizeof(rectangle::indices[0])* (rectangle::indices.size());
+	auto bufferSize=sizeof(circle::indices[0])* (circle::indices.size());
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1589,7 +1594,8 @@ void Triangle::createIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, rectangle::indices.data(), (size_t)bufferSize);
+	//memcpy(data, rectangle::indices.data(), (size_t)bufferSize);
+	memcpy(data, circle::indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	createBuffer(bufferSize,
