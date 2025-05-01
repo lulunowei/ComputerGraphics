@@ -9,6 +9,7 @@ namespace myVertexData {
     typedef struct Vertex {
         glm::vec2 pos;
         glm::vec3 color;
+        glm::vec2 texCoord;
 
         // 顶点数据绑定
         static VkVertexInputBindingDescription getBindingDescription() {
@@ -24,9 +25,9 @@ namespace myVertexData {
     // vertex attributes:position and color
        //描述怎么获取到vertex数据
        // 
-    //定义一个缓冲区，里面有两个字段：位置和颜色
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+    //定义一个缓冲区，里面有三个字段：位置和颜色，纹理坐标
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
         //位置属性（location = 0）
         attributeDescriptions[0].binding = 0;// 绑定索引0缓冲区
@@ -39,6 +40,12 @@ namespace myVertexData {
         attributeDescriptions[1].location = 1;    // 顶点着色器中的 location 1，对应顶点着色器中的layout(location = 1) in vec3 inColor
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT; // vec3（32位浮点数）
         attributeDescriptions[1].offset = offsetof(Vertex, color);   // 偏移量8字节（vec2占8字节）
+
+        //纹理坐标(location=2)
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
         //其他属性。。。(location=n)
 
@@ -56,10 +63,10 @@ namespace myVertexData {
     namespace rectangle {
         //矩形顶点
         const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f,0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f,1.0f}},
+        {{ -0.5f, 0.5f }, {1.0f, 1.0f, 1.0f}, {1.0f,1.0f} } 
         };
 
         //矩形索引

@@ -19,6 +19,7 @@ void Triangle::initVulkan()
 	createLogicalDevice();//创建逻辑设备
 	createSwapChain();//创建交换链
 	createImageViews();//创建图像视图
+	createTextureSampler();//创建纹理采样器
 	createRenderPass();//创建渲染流程
 	createDescriptorSetLayout();//创建描述符布局
 	createGraphicsPipeline();//创建图形管道
@@ -74,6 +75,7 @@ void Triangle::cleanup()
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);//释放描述符池
 
+	vkDestroySampler(device, textureSampler, nullptr);//释放采样器
 	vkDestroyImageView(device, textureImageView, nullptr);//释放图像视图
 	vkDestroyImage(device, textureImage, nullptr);
 	vkFreeMemory(device, textureImageMemory, nullptr);
@@ -316,8 +318,14 @@ bool Triangle::isDeviceSuitable(VkPhysicalDevice device)
 		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();//保证至少有1个格式和1个显示模式
 	}
+	//
+	VkPhysicalDeviceFeatures supportedFeatures;
+	vkGetPhysicalDeviceFeatures(device, &supportedFeatures); //查询物理设备支持的可选项
 
-	return indices.isComplete() && extensionsSupported && swapChainAdequate;
+	return indices.isComplete() && // 1. 队列族支持图形和呈现
+		extensionsSupported && // 2. 支持交换链扩展
+		swapChainAdequate&& // 3. 交换链支持至少一个格式和一个呈现模式
+		supportedFeatures.samplerAnisotropy;// 4. 支持各向异性过滤
 }
 
 /**
@@ -394,6 +402,7 @@ void Triangle::createLogicalDevice()
 	}
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;//启动Anisotropic Filtering，支持纹理缩放
 
 	VkDeviceCreateInfo createInfo{};//指定我需要的队列，来自哪些队列
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -421,6 +430,8 @@ void Triangle::createLogicalDevice()
 	//从逻辑设备获取图形队列和显示队列，{逻辑设备句柄，队列族索引，队列索引，队列句柄}
 	vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
 	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+
+	
 }
 
 /**
@@ -691,6 +702,7 @@ void Triangle::createImageViews()
  */
 void Triangle::createDescriptorSetLayout()
 {
+	//ubo描述符布局
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -698,10 +710,21 @@ void Triangle::createDescriptorSetLayout()
 	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;//着色器阶段
 	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
+	//sampler描述符布局
+	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+	samplerLayoutBinding.binding = 1;
+	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;//片段着色器中使用组合图像采样器描述符
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+	//布局存放到一个数组
+	std::array<VkDescriptorSetLayoutBinding, 2> bindings{ uboLayoutBinding,samplerLayoutBinding };
+
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &uboLayoutBinding;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
 
 	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor set layout!");
@@ -1135,7 +1158,7 @@ void Triangle::createTextureImage()
 {
 	int texWidth, texHeight, texChannels;
 	//返回像素值数组的第一个元素
-	stbi_uc* pixels = stbi_load("textures/texture.jpg",
+	stbi_uc* pixels = stbi_load("textures/earth.jpg",
 		&texWidth,
 		&texHeight,
 		&texChannels,
@@ -1197,6 +1220,43 @@ void Triangle::createTextureImageView()
 }
 
 /**
+ * @descrip 创建纹理采样器，结果保存在成员对象的textureSampler中
+ * 
+ * @functionName:  createTextureSampler
+ * @functionType:    void
+ */
+void Triangle::createTextureSampler()
+{
+	VkPhysicalDeviceProperties properties{};
+	vkGetPhysicalDeviceProperties(physicalDevice, &properties); //检索物理设备的属性
+
+	VkSamplerCreateInfo samplerInfo{};
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;//放大采用线性过滤
+	samplerInfo.minFilter = VK_FILTER_LINEAR;//缩小采用线性过滤
+	//纹理坐标超出了[0, 1] 范围，就重复纹理（平铺）
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = properties.limits.maxBoundDescriptorSets;//设备最高性能
+	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;//超出边界填充的颜色，当且仅当超出纹理模式设为才生效
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;//设置[0,1]定义纹理坐标，即归一化
+	samplerInfo.compareEnable = VK_FALSE;//禁用比较采样
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	//mipmapping
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	//samplerInfo.mipLodBias = 0.0f;
+	//samplerInfo.minLod = 0.0f;
+	//samplerInfo.maxLod = 0.0f;
+	
+	//创建采样器
+	if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create texture sampler!");
+	}
+}
+
+/**
  * @descrip 记录命令缓冲区
  *
  * @functionName:  recordCommandBuffer
@@ -1251,7 +1311,7 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);//绑定顶点缓冲
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);//绑定索引缓冲
-
+		//使用描述符集，每帧的描述符集绑定到对应着色器
 		vkCmdBindDescriptorSets(commandBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,//绑定到图形管线
 			pipelineLayout, 
@@ -1578,14 +1638,16 @@ void Triangle::createUniformBuffers()
  */
 void Triangle::createDescriptorPool()
 {
-	VkDescriptorPoolSize poolSize{};//申明需要的uniformBuffer个数
-	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;//枚举值：6
-	poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);//总共的槽位
+	std::array<VkDescriptorPoolSize, 2> poolSizes{};
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;//枚举值：6
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);//总共的槽位
+	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;//枚举值：1
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);//总共的槽位
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;//枚举值:33
-	poolInfo.poolSizeCount = 1;//池子类型只有UNIFORM_BUFFER
-	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);//最大描述符集数量
 
 	//创建描述符集池
@@ -1618,24 +1680,41 @@ void Triangle::createDescriptorSets()
 
 	//填充描述符，把哪个 VkBuffer 绑定到哪个 set 的哪个 binding 插槽
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = uniformBuffers[i];//指定缓冲区
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = descriptorSets[i];
-		descriptorWrite.dstBinding = 0;//指定统一描述符索引是0
-		descriptorWrite.dstArrayElement = 0;//没使用数组，从索引为0开始
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;//再次指定描述符类型
-		descriptorWrite.descriptorCount = 1;//更新描述符数组元素数量
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.sampler = textureSampler;
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = textureImageView;
 
-		descriptorWrite.pBufferInfo = &bufferInfo;
-		descriptorWrite.pImageInfo = nullptr; // Optional
-		descriptorWrite.pTexelBufferView = nullptr; // Optional
-		//vulkan进行绑定vkbuffer到set的binding槽上
-		vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = descriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;//指定统一描述符索引是0
+		descriptorWrites[0].dstArrayElement = 0;//没使用数组，从索引为0开始
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;//再次指定描述符类型
+		descriptorWrites[0].descriptorCount = 1;//更新描述符数组元素数量
+		descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = descriptorSets[i];
+		descriptorWrites[1].dstBinding = 1;//指定统一描述符索引是0
+		descriptorWrites[1].dstArrayElement = 0;//没使用数组，从索引为0开始
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;//再次指定描述符类型
+		descriptorWrites[1].descriptorCount = 1;//更新描述符数组元素数量
+		descriptorWrites[1].pImageInfo = &imageInfo;
+
+	
+		//vulkan进行绑定实际资源到set的binding槽上
+		vkUpdateDescriptorSets(device, 
+			static_cast<uint32_t>(descriptorSets.size()),
+			descriptorWrites.data(), 
+			0,
+			nullptr);
 	}
 
 

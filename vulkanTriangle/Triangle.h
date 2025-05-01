@@ -142,6 +142,8 @@ private:
 
     void createTextureImageView();//创建纹理视图
 
+    void createTextureSampler();//创建纹理采样器
+
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);//记录命令缓冲区
 
     void updateUniformBuffer(uint32_t currentImage);//更新全局数据
@@ -280,6 +282,7 @@ private:
     VkImage textureImage;//图像缓存
     VkDeviceMemory textureImageMemory;//图像缓存内存
     VkImageView textureImageView;//图像视图
+    VkSampler textureSampler;//采样器
 
 };
 
