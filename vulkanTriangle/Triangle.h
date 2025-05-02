@@ -1,4 +1,5 @@
 #pragma once
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLFW_INCLUDE_VULKAN
 #define GLM_FORCE_RADIANS
 //#define STB_IMAGE_IMPLEMENTATION
@@ -115,7 +116,9 @@ private:
 
     void createSwapChain();//创建swapchain
 
-    VkImageView createImageView(VkImage image, VkFormat format);//抽象创建视图
+    VkImageView createImageView(VkImage image,
+        VkFormat format,
+        VkImageAspectFlags aspectFlags);//抽象创建视图
 
     void createImageViews();//创建图像视图
 
@@ -195,6 +198,18 @@ private:
     void copyBufferToImage(VkBuffer buffer,
         VkImage image,
         uint32_t width, uint32_t height);
+
+    //查找支持的格式
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+        VkImageTiling tiling,
+        VkFormatFeatureFlags features);
+
+    VkFormat findDepthFormat();//选择深度组件格式
+
+    bool hasStencilComponent(VkFormat format);//检查深度格式包含模板组件
+
+    void createDepthResources();//创建深度资源
+
 
 
 
@@ -283,6 +298,10 @@ private:
     VkDeviceMemory textureImageMemory;//图像缓存内存
     VkImageView textureImageView;//图像视图
     VkSampler textureSampler;//采样器
+
+    VkImage depthImage;//深度图像
+    VkDeviceMemory depthImageMemory;//深度图像内存
+    VkImageView depthImageView;//深度视图
 
 };
 

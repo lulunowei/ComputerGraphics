@@ -2,7 +2,7 @@
 #define STB_IMAGE_IMPLEMENTATION//stb头文件包含实现函数实现，只有#include会发生链接错误
 using namespace myVertexData;
 using namespace myVertexData::rectangle;
-using namespace myVertexData::circle;
+//using namespace myVertexData::circle;
 using namespace matrixTransform;
 #include <stb_image.h>
 /**
@@ -26,6 +26,7 @@ void Triangle::initVulkan()
 	createGraphicsPipeline();//创建图形管道
 	createFramebuffers();//创建帧缓冲
 	createCommandPool();//创建命令池
+	createDepthResources();//创建深度资源
 	createTextureImage();//创建纹理图片
 	createTextureImageView();//创建纹理视图
 	createVertexBuffer();//创建顶点缓冲区
@@ -656,7 +657,9 @@ void Triangle::createSwapChain()
  * @functionType:    VkImageView
  * @return    
  */
-VkImageView Triangle::createImageView(VkImage image, VkFormat format)
+VkImageView Triangle::createImageView(VkImage image, 
+	VkFormat format,
+	VkImageAspectFlags aspectFlags)
 {
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -664,7 +667,7 @@ VkImageView Triangle::createImageView(VkImage image, VkFormat format)
 	viewInfo.image = image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	//指定纹理视图看到的是图像的哪一部分
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.aspectMask = aspectFlags;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -691,7 +694,9 @@ void Triangle::createImageViews()
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		swapChainImageViews[i] = 
-			createImageView(swapChainImages[i], swapChainImageFormat);//创建视图
+			createImageView(swapChainImages[i],
+				swapChainImageFormat,
+				VK_IMAGE_ASPECT_COLOR_BIT);//创建普通图像视图
 
 	}
 }
@@ -909,7 +914,7 @@ VkShaderModule Triangle::createShaderModule(const std::vector<char>& code)
  */
 void Triangle::createRenderPass()
 {
-	//只有一个颜色
+	//颜色附件
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -920,6 +925,18 @@ void Triangle::createRenderPass()
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;// 初始布局	,视为“未初始化”状态
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;// 最终布局,图像将被提交到交换链进行屏幕呈现。
 
+	//深度附件
+	VkAttachmentDescription depthAttachment{};
+	depthAttachment.format = findDepthFormat();
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;//渲染前清除附件内容(清除为黑色)
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;//渲染后不用保存附件内容
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;//不关心模板数据
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;//不关心模板数据
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;// 初始布局	,视为“未初始化”状态
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;// 最适合 GPU 读取深度和模板缓冲的布局
+
+
 	//。。。其他附件（深度等）
 
 
@@ -927,17 +944,25 @@ void Triangle::createRenderPass()
 	colorAttachmentRef.attachment = 0; //引用主流程附件列表中的第一个附件
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;// 子流程运行时附件的布局
 
+	VkAttachmentReference depthAttachmentRef{};
+	depthAttachmentRef.attachment = 1; //引用主流程附件列表中的第二个附件
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;// 子流程运行时附件的布局
+
+
 	//子流程创建
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;// 声明为图形渲染子流程
 	subpass.colorAttachmentCount = 1;// 使用 1 个颜色附件	
 	subpass.pColorAttachments = &colorAttachmentRef;// 指向颜色附件引用
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;//指向深度附件引用
 
 	//创建渲染流程
 	VkRenderPassCreateInfo renderPassInfo{};
+	std::array<VkAttachmentDescription, 2> attachments = 
+								{ colorAttachment, depthAttachment };
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;// 主流程的附件数量（此处只有颜色附件）
-	renderPassInfo.pAttachments = &colorAttachment;// 主流程附件列表
+	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());// 主流程的附件数量（此处只有颜色附件）
+	renderPassInfo.pAttachments = attachments.data();// 主流程附件列表
 	renderPassInfo.subpassCount = 1;// 子流程数量
 	renderPassInfo.pSubpasses = &subpass;// 子流程配置
 
@@ -945,10 +970,13 @@ void Triangle::createRenderPass()
 	VkSubpassDependency dependency{};
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;//源
 	dependency.dstSubpass = 0;//目标
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
@@ -1113,12 +1141,12 @@ void Triangle::transitionImageLayout(VkImage image,
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
 
-		barrier.srcAccessMask = 0; // TODO
-		barrier.dstAccessMask = 0; // TODO
+		barrier.srcAccessMask = 0; // 指定 在这个 barrier 之前 需要完成的访问类型
+		barrier.dstAccessMask = 0; // 指定 在这个 barrier 之后 将会进行的访问类型
 
 
-		VkPipelineStageFlags sourceStage;
-		VkPipelineStageFlags destinationStage;
+		VkPipelineStageFlags sourceStage;//它控制前一个操作在哪个阶段结束之后，barrier 才生效
+		VkPipelineStageFlags destinationStage;//它控制新的操作在 barrier 之后、在哪个阶段才能开始执行。
 
 		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
 			barrier.srcAccessMask = 0;//不需要等待之前的操作完成，设置为0
@@ -1133,6 +1161,13 @@ void Triangle::transitionImageLayout(VkImage image,
 
 			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;//源阶段是传输
 			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;//目标阶段是 片段着色器中读取纹理
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;//管线最初始阶段
+			destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//目标阶段，读取深度缓存
 		}
 		else {
 			throw std::invalid_argument("unsupported layout transition!");
@@ -1216,7 +1251,9 @@ void Triangle::createTextureImage()
 
 void Triangle::createTextureImageView()
 {
-	textureImageView=createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB);//创建视图
+	textureImageView=createImageView(textureImage,
+		VK_FORMAT_R8G8B8A8_SRGB,
+		VK_IMAGE_ASPECT_COLOR_BIT);//创建纹理视图
 
 }
 
@@ -1326,7 +1363,7 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 
 		//vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(circle::indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(rectangle::indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);//结束渲染通道
 
@@ -1540,7 +1577,7 @@ void Triangle::recreateSwapChain()
 void Triangle::createVertexBuffer()
 {
 	//VkDeviceSize bufferSize = sizeof(rectangle::vertices[0]) * (rectangle::vertices.size());
-	VkDeviceSize bufferSize = sizeof(circle::vertices[0]) * (circle::vertices.size());
+	VkDeviceSize bufferSize = sizeof(rectangle::vertices[0]) * (rectangle::vertices.size());
 	
 	VkBuffer stagingBuffer;//缓冲区
 	VkDeviceMemory stagingBufferMemory;//缓冲区内存
@@ -1555,7 +1592,7 @@ void Triangle::createVertexBuffer()
 	void* data;//data是能直接内存拷贝的指针
 	vkMapMemory(device, stagingBufferMemory, 0, (size_t)bufferSize, 0, &data);//GPU映射到CPU
 	//memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
-	memcpy(data, circle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
+	memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
 	vkUnmapMemory(device, stagingBufferMemory);//取消映射
 
 	//创建GPU内存
@@ -1581,7 +1618,7 @@ void Triangle::createVertexBuffer()
 void Triangle::createIndexBuffer()
 {
 	//auto bufferSize=sizeof(rectangle::indices[0])* (rectangle::indices.size());
-	auto bufferSize=sizeof(circle::indices[0])* (circle::indices.size());
+	auto bufferSize=sizeof(rectangle::indices[0])* (rectangle::indices.size());
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1595,7 +1632,7 @@ void Triangle::createIndexBuffer()
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
 	//memcpy(data, rectangle::indices.data(), (size_t)bufferSize);
-	memcpy(data, circle::indices.data(), (size_t)bufferSize);
+	memcpy(data, rectangle::indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	createBuffer(bufferSize,
@@ -1800,8 +1837,8 @@ void Triangle::createBuffer(VkDeviceSize size,
  * 
  * @functionName:  createImage
  * @functionType:    void
- * @param width 纹理宽
- * @param height 纹理高
+ * @param width 图像宽
+ * @param height 图像高
  * @param format 图像格式
  * @param tiling 读取方式
  * @param usage
@@ -1915,6 +1952,97 @@ void Triangle::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
 	);//缓冲区到图像的复制
 
 	endSingleTimeCommands(commandBuffer);
+}
+
+/**
+ * @descrip 查找支持的格式，从最期望到最不期望的数组中找到期望的格式
+ * 遍历 candidates 列表，查找 在指定 tiling 模式下，支持要求功能的第一个格式
+ * 
+ * @functionName:  findSupportedFormat
+ * @functionType:    VkFormat
+ * @param candidates 格式列表
+ * @param tiling 图像的布局模式
+ * @param features 格式支持的功能
+ * @return    
+ */
+VkFormat Triangle::findSupportedFormat(const std::vector<VkFormat>& candidates,
+	VkImageTiling tiling, 
+	VkFormatFeatureFlags features)
+{
+	for (auto format : candidates) {
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+		if(tiling==VK_IMAGE_TILING_LINEAR&&
+			(props.linearTilingFeatures & features)==
+			features) {
+			return format;
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+			(props.optimalTilingFeatures & features) ==
+			features) {
+			return format;
+		}
+	}
+	throw std::runtime_error("failed to find supported format!");
+}
+
+/**
+ * @descrip 选择深度组件格式
+ * 
+ * @functionName:  findDepthFormat
+ * @functionType:    VkFormat
+ * @return    
+ */
+VkFormat Triangle::findDepthFormat()
+{
+	return findSupportedFormat(
+		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },//格式列表
+		VK_IMAGE_TILING_OPTIMAL,//最适合 GPU 访问的图像布局模式
+		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT//用作深度/模板附件
+	);
+}
+
+/**
+ * @descrip 检查深度格式包含模板组件
+ * 
+ * @functionName:  hasStencilComponent
+ * @functionType:    bool
+ * @return    
+ */
+bool Triangle::hasStencilComponent(VkFormat format)
+{
+	return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
+/**
+ * @descrip 创建深度资源
+ * 
+ * @functionName:  createDepthResources
+ * @functionType:    void
+ */
+void Triangle::createDepthResources()
+{
+	//查找格式
+	VkFormat depthFormat = findDepthFormat();
+	//构建深度图像缓存
+	createImage(swapChainExtent.width,
+		swapChainExtent.height,
+		depthFormat,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		depthImage,
+		depthImageMemory);
+	depthImageView=createImageView(depthImage,
+		depthFormat, 
+		VK_IMAGE_ASPECT_DEPTH_BIT);//创建深度视图
+
+	//转换布局
+	transitionImageLayout(depthImage, 
+		depthFormat, 
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 

@@ -8,7 +8,7 @@
 namespace myVertexData {
 
     typedef struct Vertex {
-        glm::vec2 pos;
+        glm::vec3 pos;
         glm::vec3 color;
         glm::vec2 texCoord;
 
@@ -31,7 +31,7 @@ namespace myVertexData {
         //位置属性（location = 0）
         attributeDescriptions[0].binding = 0;// 绑定索引0缓冲区
         attributeDescriptions[0].location = 0;//对应顶点着色器中的layout(location = 0) in vec2 inPosition;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; //vec2（32位浮点数）
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT; //vec3（32位浮点数）
         attributeDescriptions[0].offset = offsetof(Vertex, pos);// 偏移量0字节
 
         // 颜色属性（location = 1）
@@ -52,39 +52,45 @@ namespace myVertexData {
     }
 
     //三角形
-    const std::vector<Vertex> vertices = {
-        { { 0.0f, -0.5f },  { 1.0f, 1.0f, 1.0f } }, // 第一个顶点：位置和颜色
-        { { 0.5f, 0.5f },   { 0.0f, 1.0f, 0.0f } }, // 第二个顶点
-        { { -0.5f, 0.5f },  { 0.0f, 0.0f, 1.0f } } // 第三个顶点};
-    };
+    //const std::vector<Vertex> vertices = {
+    //    { { 0.0f, -0.5f },  { 1.0f, 1.0f, 1.0f } }, // 第一个顶点：位置和颜色
+    //    { { 0.5f, 0.5f },   { 0.0f, 1.0f, 0.0f } }, // 第二个顶点
+    //    { { -0.5f, 0.5f },  { 0.0f, 0.0f, 1.0f } } // 第三个顶点};
+    //};
 
     //矩形
     namespace rectangle {
         //矩形顶点
         const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f,0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f,1.0f}},
-        {{ -0.5f, 0.5f }, {1.0f, 1.0f, 1.0f}, {1.0f,1.0f} } 
+        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+        {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f,0.0f}},
+        {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,1.0f}},
+        {{ -0.5f, 0.5f, 0.0f }, {1.0f, 1.0f, 1.0f}, {1.0f,1.0f} },
+
+        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+        {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+        {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+        {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
         };
 
         //矩形索引
-        const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
+        const std::vector<uint16_t> indices = { 0, 1, 2, 2, 3, 0,4, 5, 6, 6, 7, 4 };
     }
 
-    namespace circle {
-        static constexpr int NUM_SEGMENTS = 64; // 圆弧数量
-        static constexpr float RADIUS = 0.5f;//半径
+    //圆
+    //namespace circle {
+    //    static constexpr int NUM_SEGMENTS = 64; // 圆弧数量
+    //    static constexpr float RADIUS = 0.5f;//半径
 
-        //构建圆所需的vertex
-        const std::vector<Vertex> createCircleVertices();
+    //    //构建圆所需的vertex
+    //    const std::vector<Vertex> createCircleVertices();
 
-        //构建圆所需的indices
-        const std::vector<uint16_t> createCircleIndices();
+    //    //构建圆所需的indices
+    //    const std::vector<uint16_t> createCircleIndices();
 
-        extern const std::vector<Vertex> vertices ;
-        extern const std::vector<uint16_t> indices ;
-    }
+    //    extern const std::vector<Vertex> vertices ;
+    //    extern const std::vector<uint16_t> indices ;
+    //}
 
 
 };
