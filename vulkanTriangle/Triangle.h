@@ -6,15 +6,21 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>//用于生成MVP变换
+#include <tiny_obj_loader.h>
+#include"VertexData.h"
 #include"const.h"
 #include "FileUtils.h"
-#include"VertexData.h"
 #include"Matrix.h"
+
 
 
 constexpr std::uint32_t WIDTH = 800;
 constexpr std::uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 2;//定义同时处理的帧数
+
+const std::string MODEL_PATH = "models/viking_room.obj";//模型路径
+const std::string TEXTURE_PATH = "textures/viking_room.png";//纹理路径
+
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -151,6 +157,8 @@ private:
 
     void updateUniformBuffer(uint32_t currentImage);//更新全局数据
 
+    void loadModel();//加载obj模型
+
     void drawFrame();//绘制一帧
 
     void createSyncObjects();//创建同步对象
@@ -277,6 +285,9 @@ private:
     uint32_t currentFrame = 0;
 
     bool framebufferResized = false;//窗口大小是否改变
+
+    std::vector<Vertex> vertices;//自定义顶点属性
+    std::vector<uint32_t> indices;//自定义索引
 
     VkBuffer vertexBuffer;//顶点缓冲区
     VkDeviceMemory vertexBufferMemory;//顶点缓冲区内存

@@ -1,7 +1,6 @@
 #include "Triangle.h"
 #define STB_IMAGE_IMPLEMENTATION//stb头文件包含实现函数实现，只有#include会发生链接错误
-using namespace myVertexData;
-using namespace myVertexData::rectangle;
+#define TINYOBJLOADER_IMPLEMENTATION
 //using namespace myVertexData::circle;
 using namespace matrixTransform;
 #include <stb_image.h>
@@ -20,15 +19,16 @@ void Triangle::initVulkan()
 	createLogicalDevice();//创建逻辑设备
 	createSwapChain();//创建交换链
 	createImageViews();//创建图像视图
-	createTextureSampler();//创建纹理采样器
 	createRenderPass();//创建渲染流程
 	createDescriptorSetLayout();//创建描述符布局
 	createGraphicsPipeline();//创建图形管道
-	createFramebuffers();//创建帧缓冲
 	createCommandPool();//创建命令池
-	createDepthResources();//创建深度资源
+	createDepthResources();//创建深度资源(深度视图)
+	createFramebuffers();//创建帧缓冲
 	createTextureImage();//创建纹理图片
 	createTextureImageView();//创建纹理视图
+	createTextureSampler();//创建纹理采样器
+	loadModel();//加载模型
 	createVertexBuffer();//创建顶点缓冲区
 	createIndexBuffer();//创建索引缓冲区
 	createUniformBuffers();//创建统一资源缓冲区
@@ -36,7 +36,6 @@ void Triangle::initVulkan()
 	createDescriptorSets();//创建统一资源集合
 	createCommandBuffers();//创建命令缓冲
 	createSyncObjects();//创建信号量
-
 }
 
 /**
@@ -320,8 +319,9 @@ bool Triangle::isDeviceSuitable(VkPhysicalDevice device)
 		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();//保证至少有1个格式和1个显示模式
 	}
-	//
+	
 	VkPhysicalDeviceFeatures supportedFeatures;
+	//supportedFeatures.samplerAnisotropy = VK_TRUE;  // 必须启用这个功能
 	vkGetPhysicalDeviceFeatures(device, &supportedFeatures); //查询物理设备支持的可选项
 
 	return indices.isComplete() && // 1. 队列族支持图形和呈现
@@ -771,8 +771,8 @@ void Triangle::createGraphicsPipeline()
 	//vertex shader顶点的输入信息
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 
-		auto bindingDescription = myVertexData::Vertex::getBindingDescription();
-		auto attributeDescriptions = myVertexData::getAttributeDescriptions();
+		auto bindingDescription = Vertex::getBindingDescription();
+		auto attributeDescriptions = getAttributeDescriptions();
 
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		//vertexInputInfo.vertexBindingDescriptionCount = 0;
@@ -843,6 +843,19 @@ void Triangle::createGraphicsPipeline()
 		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicState.pDynamicStates = dynamicStates.data();
 
+	//定义深度测试
+	VkPipelineDepthStencilStateCreateInfo depthStencil{};
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.minDepthBounds = 0.0f; // Optional
+	depthStencil.maxDepthBounds = 1.0f; // Optional
+	depthStencil.stencilTestEnable = VK_FALSE;
+	depthStencil.front = {}; // Optional
+	depthStencil.back = {}; // Optional
+
 	//声明管线布局，用于访问外部资源
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -855,6 +868,7 @@ void Triangle::createGraphicsPipeline()
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
+
 	//定义管线
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -866,7 +880,7 @@ void Triangle::createGraphicsPipeline()
 	pipelineInfo.pViewportState = &viewportState;//视口
 	pipelineInfo.pRasterizationState = &rasterizer;//光栅化
 	pipelineInfo.pMultisampleState = &multisampling;//多采样
-	pipelineInfo.pDepthStencilState = nullptr; // Optional
+	pipelineInfo.pDepthStencilState = &depthStencil;//深度测试
 	pipelineInfo.pColorBlendState = &colorBlending;//颜色混合
 	pipelineInfo.pDynamicState = &dynamicState;//动态裁剪
 	pipelineInfo.layout = pipelineLayout;//布局
@@ -998,15 +1012,14 @@ void Triangle::createFramebuffers()
 
 	//遍历交换区视图
 	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-		VkImageView attachments[] = {
-			swapChainImageViews[i]
-		};
+		//图像视图和深度视图
+		std::array<VkImageView, 2> attachments = {swapChainImageViews[i],depthImageView};
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = renderPass;//一个renderpass对应一个framebuffer
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
+		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = swapChainExtent.width;
 		framebufferInfo.height = swapChainExtent.height;
 		framebufferInfo.layers = 1;
@@ -1135,7 +1148,17 @@ void Triangle::transitionImageLayout(VkImage image,
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.image = image;
 
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+			if (hasStencilComponent(format)) {
+				barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+		}
+		else {
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+		//barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		barrier.subresourceRange.baseMipLevel = 0;
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
@@ -1194,7 +1217,7 @@ void Triangle::createTextureImage()
 {
 	int texWidth, texHeight, texChannels;
 	//返回像素值数组的第一个元素
-	stbi_uc* pixels = stbi_load("textures/texture.jpg",
+	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(),
 		&texWidth,
 		&texHeight,
 		&texChannels,
@@ -1267,6 +1290,8 @@ void Triangle::createTextureSampler()
 {
 	VkPhysicalDeviceProperties properties{};
 	vkGetPhysicalDeviceProperties(physicalDevice, &properties); //检索物理设备的属性
+	//std::cout << "GPU supports maxSamplerAnisotropy: " << properties.limits.maxSamplerAnisotropy << std::endl;
+
 
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1277,7 +1302,7 @@ void Triangle::createTextureSampler()
 	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = properties.limits.maxBoundDescriptorSets;//设备最高性能
+	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;//设备最高性能
 	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;//超出边界填充的颜色，当且仅当超出纹理模式设为才生效
 	samplerInfo.unnormalizedCoordinates = VK_FALSE;//设置[0,1]定义纹理坐标，即归一化
 	samplerInfo.compareEnable = VK_FALSE;//禁用比较采样
@@ -1304,6 +1329,8 @@ void Triangle::createTextureSampler()
  */
 void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
+
+
 	//开始录制命令
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1321,9 +1348,12 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = swapChainExtent;
 
-	VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColor;
+	//VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+	std::array<VkClearValue, 2> clearValues{};//设置每帧的清除值
+	clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };//清除颜色附件
+	clearValues[1].depthStencil = { 1.0f, 0 };//清除深度和模板附件
+	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());;
+	renderPassInfo.pClearValues = clearValues.data();
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);//启动渲染通道
 
@@ -1348,7 +1378,7 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);//绑定顶点缓冲
 
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);//绑定索引缓冲
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);//绑定索引缓冲
 		//使用描述符集，每帧的描述符集绑定到对应着色器
 		vkCmdBindDescriptorSets(commandBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,//绑定到图形管线
@@ -1359,11 +1389,7 @@ void Triangle::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 			0,
 			nullptr);
 
-		//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);//绑定索引缓冲
-
-		//vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(rectangle::indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);//结束渲染通道
 
@@ -1398,7 +1424,7 @@ void Triangle::updateUniformBuffer(uint32_t currentImage)
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
 	// 45 度垂直视场角的透视投影
-	ubo.proj = glm::perspective(glm::radians(25.0f),
+	ubo.proj = glm::perspective(glm::radians(45.0f),
 		swapChainExtent.width / (float)swapChainExtent.height,
 		0.1f, 
 		10.0f);
@@ -1407,6 +1433,53 @@ void Triangle::updateUniformBuffer(uint32_t currentImage)
 	ubo.proj[1][1] *= -1;
 	//复制数据到统一缓冲区，uniformBuffersMapped指针指向该内存
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+}
+
+/**
+ * @descrip 加载OBJ模型
+ * 
+ * @functionName:  loadModel
+ * @functionType:    void
+ */
+void Triangle::loadModel()
+{
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
+		throw std::runtime_error(warn + err);
+	}
+	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+	for (const auto& shape : shapes) {
+		for (const auto& index : shape.mesh.indices) {
+			Vertex vertex{};
+			vertex.pos = {
+					attrib.vertices[3 * index.vertex_index + 0],
+					attrib.vertices[3 * index.vertex_index + 1],
+					attrib.vertices[3 * index.vertex_index + 2]
+						 };
+
+			vertex.texCoord = {
+				attrib.texcoords[2 * index.texcoord_index + 0],
+				1.0 - attrib.texcoords[2 * index.texcoord_index + 1]//反转
+				//attrib.texcoords[2 * index.texcoord_index + 1]//反转
+			};
+
+			vertex.color = { 1.0f, 1.0f, 1.0f };
+
+			//vertices.push_back(vertex);
+
+			//映射为hash值，通过hash值判读顶点是否重复
+			if (uniqueVertices.count(vertex) == 0) {//不重复就存入vertices数组
+				uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+				vertices.push_back(vertex);
+			}
+			indices.push_back(uniqueVertices[vertex]);
+		}
+	}
 }
 
 
@@ -1533,6 +1606,10 @@ void Triangle::createSyncObjects()
  */
 void Triangle::cleanupSwapChain()
 {
+	vkDestroyImageView(device, depthImageView, nullptr);
+	vkDestroyImage(device, depthImage, nullptr);
+	vkFreeMemory(device, depthImageMemory, nullptr);
+
 	for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
 		vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
 	}
@@ -1565,6 +1642,7 @@ void Triangle::recreateSwapChain()
 
 	createSwapChain();
 	createImageViews();
+	createDepthResources();//调整深度缓冲区
 	createFramebuffers();
 }
 
@@ -1577,7 +1655,7 @@ void Triangle::recreateSwapChain()
 void Triangle::createVertexBuffer()
 {
 	//VkDeviceSize bufferSize = sizeof(rectangle::vertices[0]) * (rectangle::vertices.size());
-	VkDeviceSize bufferSize = sizeof(rectangle::vertices[0]) * (rectangle::vertices.size());
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * (vertices.size());
 	
 	VkBuffer stagingBuffer;//缓冲区
 	VkDeviceMemory stagingBufferMemory;//缓冲区内存
@@ -1592,7 +1670,7 @@ void Triangle::createVertexBuffer()
 	void* data;//data是能直接内存拷贝的指针
 	vkMapMemory(device, stagingBufferMemory, 0, (size_t)bufferSize, 0, &data);//GPU映射到CPU
 	//memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
-	memcpy(data, rectangle::vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
+	memcpy(data, vertices.data(), (size_t)bufferSize);//通过data拷贝数据到data指向的stagingBufferMemory
 	vkUnmapMemory(device, stagingBufferMemory);//取消映射
 
 	//创建GPU内存
@@ -1618,7 +1696,7 @@ void Triangle::createVertexBuffer()
 void Triangle::createIndexBuffer()
 {
 	//auto bufferSize=sizeof(rectangle::indices[0])* (rectangle::indices.size());
-	auto bufferSize=sizeof(rectangle::indices[0])* (rectangle::indices.size());
+	auto bufferSize=sizeof(indices[0])* (indices.size());
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1632,7 +1710,7 @@ void Triangle::createIndexBuffer()
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
 	//memcpy(data, rectangle::indices.data(), (size_t)bufferSize);
-	memcpy(data, rectangle::indices.data(), (size_t)bufferSize);
+	memcpy(data, indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	createBuffer(bufferSize,
@@ -1871,7 +1949,7 @@ void Triangle::createImage(uint32_t width, uint32_t height,
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;//单样本采样
 	//imageInfo.flags = 0; // Optional
 
-	if (vkCreateImage(device, &imageInfo, nullptr, &textureImage) != VK_SUCCESS) {
+	if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create image");
 	}
 

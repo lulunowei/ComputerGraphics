@@ -56,5 +56,9 @@
     <None Include="shaders\shader.frag" />
     <None Include="shaders\shader.vert" />
     <None Include="shaders\vert.spv" />
+    <None Include="notebook\0504.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="models\viking_room.obj" />
   </ItemGroup>
 </Project>

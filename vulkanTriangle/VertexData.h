@@ -1,13 +1,13 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/ext/scalar_constants.hpp>
+#include <glm/gtx/hash.hpp>
 #include<vector>
 #include<array>
-namespace myVertexData {
-
-    typedef struct Vertex {
+typedef struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
         glm::vec2 texCoord;
@@ -21,7 +21,36 @@ namespace myVertexData {
 
             return bindingDescription;
         }
-    }Vertex;
+
+        bool operator==(const Vertex& other) const
+        {
+            return pos == other.pos &&
+                color == other.color &&
+                texCoord == other.texCoord;
+        }
+
+ }Vertex;
+
+//特化hash模板
+namespace std {
+    template<>
+    struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const {
+            //计算 pos、color 和 texCoord 的哈希值，然后将它们合并到一个单一的哈希值中
+            return ((hash<glm::vec3>()(vertex.pos) ^
+                (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                (hash<glm::vec2>()(vertex.texCoord) << 1);
+        }
+    };
+};
+
+
+
+
+
+
+
+
 
 
     //定义一个缓冲区，里面有三个字段：位置和颜色，纹理坐标
@@ -51,13 +80,6 @@ namespace myVertexData {
         return attributeDescriptions;
     }
 
-    //三角形
-    //const std::vector<Vertex> vertices = {
-    //    { { 0.0f, -0.5f },  { 1.0f, 1.0f, 1.0f } }, // 第一个顶点：位置和颜色
-    //    { { 0.5f, 0.5f },   { 0.0f, 1.0f, 0.0f } }, // 第二个顶点
-    //    { { -0.5f, 0.5f },  { 0.0f, 0.0f, 1.0f } } // 第三个顶点};
-    //};
-
     //矩形
     namespace rectangle {
         //矩形顶点
@@ -77,21 +99,7 @@ namespace myVertexData {
         const std::vector<uint16_t> indices = { 0, 1, 2, 2, 3, 0,4, 5, 6, 6, 7, 4 };
     }
 
-    //圆
-    //namespace circle {
-    //    static constexpr int NUM_SEGMENTS = 64; // 圆弧数量
-    //    static constexpr float RADIUS = 0.5f;//半径
-
-    //    //构建圆所需的vertex
-    //    const std::vector<Vertex> createCircleVertices();
-
-    //    //构建圆所需的indices
-    //    const std::vector<uint16_t> createCircleIndices();
-
-    //    extern const std::vector<Vertex> vertices ;
-    //    extern const std::vector<uint16_t> indices ;
-    //}
 
 
-};
+
 
