@@ -61,4 +61,7 @@
   <ItemGroup>
     <Object Include="models\viking_room.obj" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
+  </ItemGroup>
 </Project>

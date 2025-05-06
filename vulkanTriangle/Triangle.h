@@ -123,6 +123,7 @@ private:
     void createSwapChain();//创建swapchain
 
     VkImageView createImageView(VkImage image,
+        uint32_t mipLevels,
         VkFormat format,
         VkImageAspectFlags aspectFlags);//抽象创建视图
 
@@ -142,7 +143,14 @@ private:
 
     void createCommandBuffers();//创建命令缓冲区
 
+    void generateMipmaps(VkImage image,
+        VkFormat imageFormat,
+        int32_t texWidth,
+        int32_t texHeight,
+        int32_t mipLevels);//生成mipmaps
+
     void transitionImageLayout(VkImage image,
+        uint32_t mipLevels,
         VkFormat format,
         VkImageLayout oldLayout, 
         VkImageLayout newLayout);//处理图像布局转换
@@ -185,7 +193,7 @@ private:
         VkBuffer& buffer,
         VkDeviceMemory& bufferMemory);//创建缓冲区
 
-    void createImage(uint32_t width, uint32_t height,
+    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
         VkFormat format,
         VkImageTiling tiling,
         VkImageUsageFlags usage,
@@ -305,6 +313,7 @@ private:
     VkBuffer stagingBuffer;//暂存缓存
     VkDeviceMemory stagingBufferMemory;//暂存缓存内存
 
+    uint32_t mipLevels;//mipmap层数
     VkImage textureImage;//图像缓存
     VkDeviceMemory textureImageMemory;//图像缓存内存
     VkImageView textureImageView;//图像视图

@@ -658,6 +658,7 @@ void Triangle::createSwapChain()
  * @return    
  */
 VkImageView Triangle::createImageView(VkImage image, 
+	uint32_t mipLevels,
 	VkFormat format,
 	VkImageAspectFlags aspectFlags)
 {
@@ -669,7 +670,7 @@ VkImageView Triangle::createImageView(VkImage image,
 	//指定纹理视图看到的是图像的哪一部分
 	viewInfo.subresourceRange.aspectMask = aspectFlags;
 	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.levelCount = mipLevels;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
@@ -695,6 +696,7 @@ void Triangle::createImageViews()
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		swapChainImageViews[i] = 
 			createImageView(swapChainImages[i],
+				1,
 				swapChainImageFormat,
 				VK_IMAGE_ASPECT_COLOR_BIT);//创建普通图像视图
 
@@ -1124,6 +1126,113 @@ void Triangle::createCommandBuffers()
 }
 
 /**
+ * @descrip 生成Mipmaps
+ * 
+ * @functionName:  generateMipmaps
+ * @functionType:    void
+ * @param image
+ * @param texWidth
+ * @param texHeight
+ * @param mipLevels
+ */
+void Triangle::generateMipmaps(VkImage image,//用于对同一图像不同级别的mipmap参数
+	VkFormat imageFormat,
+	int32_t texWidth,
+	int32_t texHeight,
+	int32_t mipLevels)
+{
+	VkFormatProperties formatProperties;
+	vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
+
+	//检查对线性过滤功能的支持
+	if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+		throw std::runtime_error("texture image format does not support linear blitting!");
+	}
+
+	VkCommandBuffer commandbuffer = beginSingleTimeCommands();
+
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.image = image;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.levelCount = 1;
+
+	int32_t mipWidth = texWidth;
+	int32_t mipHeight = texHeight;
+	for (int32_t i = 1; i < mipLevels; i++) {
+		barrier.subresourceRange.baseMipLevel = i - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;//等待之前写操作完成，例如copyBufferToImage()的操作
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;//接下来进行读操作，例如vkcmdblitimage()
+
+		//提交屏障
+		vkCmdPipelineBarrier(commandbuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,//源用于内存拷贝
+			VK_PIPELINE_STAGE_TRANSFER_BIT,//目标用于vkcmdblitimage(),本质也是传输
+			0,
+			0, nullptr,	
+			0, nullptr,
+			1, &barrier
+		);
+
+		VkImageBlit blit{};
+		blit.srcOffsets[0] = { 0,0,0 };
+		blit.srcOffsets[1] = { mipWidth,mipHeight,1 };
+		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.srcSubresource.mipLevel = i - 1;
+		blit.srcSubresource.baseArrayLayer = 0;
+		blit.srcSubresource.layerCount = 1;
+
+		blit.dstOffsets[0] = { 0,0,0 };
+		blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1,mipHeight > 1 ? mipHeight / 2 : 1 ,1};
+		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.dstSubresource.mipLevel = i;
+		blit.dstSubresource.baseArrayLayer = 0;
+		blit.dstSubresource.layerCount = 1;
+
+		//录制命令到命令缓冲区command buffer中
+		vkCmdBlitImage(commandbuffer,
+			image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,&blit,
+			VK_FILTER_LINEAR);//线性过滤缩放
+
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;//读mip[i-1]
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;//mip[i-1]只供shader使用，这个转换等待复制命令完成
+
+		vkCmdPipelineBarrier(commandbuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);
+
+		if (mipWidth > 1) mipWidth /= 2;
+		if (mipHeight > 1) mipHeight /= 2;
+	}
+
+	//处理mip[i],从"写"状态到"着色器"可读
+	barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+	vkCmdPipelineBarrier(commandbuffer,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier);
+	endSingleTimeCommands(commandbuffer);
+}
+
+/**
  * @descrip 处理图像布局转换，定义了图像内存屏障
  * 
  * @functionName:  transitionImageLayout
@@ -1134,6 +1243,7 @@ void Triangle::createCommandBuffers()
  * @param newLayout 转换布局
  */
 void Triangle::transitionImageLayout(VkImage image, 
+	uint32_t mipLevels,
 	VkFormat format,
 	VkImageLayout oldLayout,
 	VkImageLayout newLayout)
@@ -1160,7 +1270,7 @@ void Triangle::transitionImageLayout(VkImage image,
 		}
 		//barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.levelCount = mipLevels;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
 
@@ -1227,32 +1337,38 @@ void Triangle::createTextureImage()
 	if (!pixels) {
 		throw std::runtime_error("failed to load texture image!");
 	}
+	//获取纹理图的mipmap等级
+	mipLevels = static_cast<uint32_t>(
+		std::floor(std::log2(std::max(texWidth, texHeight))))
+		+ 1;
 
 	createBuffer(imageSize,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,//分配GPU可读，CPU可写的内存
 		stagingBuffer,
 		stagingBufferMemory
 	);//创建了一块vulkan管理的内存区，绑定到缓冲区对象stagingBuffer
 
 	void* data;
 	vkMapMemory(device,stagingBufferMemory,0,imageSize,0,&data);
-		memcpy(data, pixels, static_cast<size_t>(imageSize));
+		memcpy(data, pixels, static_cast<size_t>(imageSize));//将内存读取的纹理数据拷贝到GPU可见CPU可写的内存
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	stbi_image_free(pixels);
 
 	createImage(static_cast<uint32_t>(texWidth),
 		static_cast<uint32_t>(texHeight),
+		mipLevels,
 		VK_FORMAT_R8G8B8A8_SRGB,//指定图像格式，与输入的纹理图一致
 		VK_IMAGE_TILING_OPTIMAL,//指定纹素排列顺序
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,//指定用途
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,//指定图像内存的属性，存储在GPU本地，不同与HOST_VISIBLE
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT| VK_IMAGE_USAGE_TRANSFER_SRC_BIT,//指定用途
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,//分配到GPU显存
 		textureImage,
 		textureImageMemory
 	);
 	//转换图像布局
 	transitionImageLayout(textureImage,
+		mipLevels,
 		VK_FORMAT_R8G8B8A8_SRGB,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -1261,20 +1377,29 @@ void Triangle::createTextureImage()
 		textureImage,
 		static_cast<uint32_t>(texWidth),
 		static_cast<uint32_t>(texHeight));
+
 	//转换图像布局，用于着色器访问
-	transitionImageLayout(textureImage,
-		VK_FORMAT_R8G8B8A8_SRGB, 
-		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	//transitionImageLayout(textureImage,
+	//	mipLevels,
+	//	VK_FORMAT_R8G8B8A8_SRGB, 
+	//	VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	//	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	generateMipmaps(textureImage,
+		VK_FORMAT_R8G8B8A8_SRGB,
+		texWidth, 
+		texHeight, 
+		mipLevels);
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
+
 
 }
 
 void Triangle::createTextureImageView()
 {
 	textureImageView=createImageView(textureImage,
+		mipLevels,
 		VK_FORMAT_R8G8B8A8_SRGB,
 		VK_IMAGE_ASPECT_COLOR_BIT);//创建纹理视图
 
@@ -1309,9 +1434,9 @@ void Triangle::createTextureSampler()
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 	//mipmapping
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	//samplerInfo.mipLodBias = 0.0f;
-	//samplerInfo.minLod = 0.0f;
-	//samplerInfo.maxLod = 0.0f;
+	samplerInfo.minLod = 0.0f; // Optional
+	samplerInfo.maxLod = static_cast<float>(mipLevels);
+	samplerInfo.mipLodBias = 0.0f; // Optional
 	
 	//创建采样器
 	if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
@@ -1891,7 +2016,7 @@ void Triangle::createBuffer(VkDeviceSize size,
 	if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create buffer!");
 	}
-	//2.查询vertexBuffer内存需求
+	//2.查询传入参数buffer的内存需求
 	VkMemoryRequirements memRequirements;
 	vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 
@@ -1924,7 +2049,7 @@ void Triangle::createBuffer(VkDeviceSize size,
  * @param image
  * @param imageMemory
  */
-void Triangle::createImage(uint32_t width, uint32_t height,
+void Triangle::createImage(uint32_t width, uint32_t height,uint32_t mipLevels,
 	VkFormat format, 
 	VkImageTiling tiling,
 	VkImageUsageFlags usage, 
@@ -1939,7 +2064,7 @@ void Triangle::createImage(uint32_t width, uint32_t height,
 	imageInfo.extent.width = width;
 	imageInfo.extent.height = height;
 	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = 1;
+	imageInfo.mipLevels = mipLevels;
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = format;//设置与读取纹素相同的格式
 	imageInfo.tiling = tiling;//纹素以实现定义的顺序排列，GPU高效访问
@@ -2106,6 +2231,7 @@ void Triangle::createDepthResources()
 	//构建深度图像缓存
 	createImage(swapChainExtent.width,
 		swapChainExtent.height,
+		1,
 		depthFormat,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -2113,11 +2239,13 @@ void Triangle::createDepthResources()
 		depthImage,
 		depthImageMemory);
 	depthImageView=createImageView(depthImage,
+		1,
 		depthFormat, 
 		VK_IMAGE_ASPECT_DEPTH_BIT);//创建深度视图
 
 	//转换布局
 	transitionImageLayout(depthImage, 
+		1,
 		depthFormat, 
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
