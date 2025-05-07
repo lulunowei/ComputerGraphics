@@ -1435,6 +1435,7 @@ void Triangle::createTextureSampler()
 	//mipmapping
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	samplerInfo.minLod = 0.0f; // Optional
+	//samplerInfo.minLod = static_cast<float>(mipLevels / 2);; // Optional
 	samplerInfo.maxLod = static_cast<float>(mipLevels);
 	samplerInfo.mipLodBias = 0.0f; // Optional
 	
@@ -1541,7 +1542,7 @@ void Triangle::updateUniformBuffer(uint32_t currentImage)
 	UniformBufferObject ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f),//单位矩阵
 		time * glm::radians(90.0f),//每秒旋转90°
-		glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::vec3(0.0f, 1.0f, 1.0f));
 
 	//从上方以 45 度角观察几何形状
 	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
