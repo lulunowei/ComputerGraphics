@@ -18,8 +18,8 @@ constexpr std::uint32_t WIDTH = 800;
 constexpr std::uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 2;//定义同时处理的帧数
 
-const std::string MODEL_PATH = "models/viking_room.obj";//模型路径
-const std::string TEXTURE_PATH = "textures/viking_room.png";//纹理路径
+const std::string MODEL_PATH = "models/asterion.obj";//模型路径
+const std::string TEXTURE_PATH = "textures/wrj.png";//纹理路径
 
 
 const std::vector<const char*> validationLayers = {
@@ -34,7 +34,7 @@ const std::vector<const char*> deviceExtensions = {
 const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
-#endif // !NDEBUG
+#endif // 调试模式就开启验证
 
 
 
@@ -101,7 +101,6 @@ private:
     bool checkValidationLayerSupport();//检查一个或多个 Vulkan 验证层是否在系统的 Vulkan 安装中可用
 
     void pickPhysicalDevice();//选择一个物理设备
-
     bool isDeviceSuitable(VkPhysicalDevice device);//检查物理设备是否满足我们的需求
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);//查找queue族
@@ -111,13 +110,10 @@ private:
     void createSurface();//创建表面
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);//检查物理设备是否支持需要的扩展
-
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);//swapchain的属性查询
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);//选择合适的swapchain格式
-
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);//选择合适的swapchain显示模式
-
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);//选择合适的swapchain分辨率
 
     void createSwapChain();//创建swapchain
@@ -126,7 +122,6 @@ private:
         uint32_t mipLevels,
         VkFormat format,
         VkImageAspectFlags aspectFlags);//抽象创建视图
-
     void createImageViews();//创建图像视图
 
     void createDescriptorSetLayout();//创建描述符布局
@@ -140,7 +135,6 @@ private:
     void createFramebuffers();//创建framebuffers
 
     void createCommandPool();//创建命令池
-
     void createCommandBuffers();//创建命令缓冲区
 
     void generateMipmaps(VkImage image,
@@ -156,10 +150,11 @@ private:
         VkImageLayout newLayout);//处理图像布局转换
 
     void createTextureImage();//创建纹理图
-
     void createTextureImageView();//创建纹理视图
-
     void createTextureSampler();//创建纹理采样器
+
+    
+
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);//记录命令缓冲区
 
@@ -167,12 +162,13 @@ private:
 
     void loadModel();//加载obj模型
 
+    void loadRectangle();//加载矩形
+
     void drawFrame();//绘制一帧
 
     void createSyncObjects();//创建同步对象
 
     void cleanupSwapChain();//清理swapchain
-
     void recreateSwapChain();//重新创建swapchain，用于窗口大小改变
 
     void createVertexBuffer();//创建顶点缓冲区
@@ -193,7 +189,10 @@ private:
         VkBuffer& buffer,
         VkDeviceMemory& bufferMemory);//创建缓冲区
 
-    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
+    void createImage(uint32_t width, 
+        uint32_t height, 
+        uint32_t mipLevels,
+        VkSampleCountFlagBits numSamples,//像素采样数
         VkFormat format,
         VkImageTiling tiling,
         VkImageUsageFlags usage,
@@ -225,6 +224,9 @@ private:
     bool hasStencilComponent(VkFormat format);//检查深度格式包含模板组件
 
     void createDepthResources();//创建深度资源
+    void createColorResources();//创建多采样颜色缓冲区
+
+    VkSampleCountFlagBits getMaxUsableSampleCount();//获取深度和颜色采样数
 
 
 
@@ -270,6 +272,10 @@ private:
     VkExtent2D swapChainExtent;//swapchain图像分辨率
 
     std::vector<VkImageView> swapChainImageViews;//swapchain图像视图
+
+    VkImage colorImage;//多采样图像
+    VkDeviceMemory colorImageMemory;//多采样图像内存
+    VkImageView colorImageView;//多采样图像视图
 
     VkRenderPass renderPass;//渲染流程
 
@@ -322,6 +328,8 @@ private:
     VkImage depthImage;//深度图像
     VkDeviceMemory depthImageMemory;//深度图像内存
     VkImageView depthImageView;//深度视图
+
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;//采样点
 
 };
 

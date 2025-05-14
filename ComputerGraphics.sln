@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vulkanTriangle", "vulkanTriangle\vulkanTriangle.vcxproj", "{CC5635F3-4365-4363-BBFF-45EC2992AB6D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenGLTriangle", "OpenGLTriangle\OpenGLTriangle.vcxproj", "{BCE0C070-FBA1-4D62-B808-0C276FC6B475}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{CC5635F3-4365-4363-BBFF-45EC2992AB6D}.Release|x64.Build.0 = Release|x64
 		{CC5635F3-4365-4363-BBFF-45EC2992AB6D}.Release|x86.ActiveCfg = Release|Win32
 		{CC5635F3-4365-4363-BBFF-45EC2992AB6D}.Release|x86.Build.0 = Release|Win32
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Debug|x64.ActiveCfg = Debug|x64
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Debug|x64.Build.0 = Debug|x64
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Debug|x86.ActiveCfg = Debug|Win32
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Debug|x86.Build.0 = Debug|Win32
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Release|x64.ActiveCfg = Release|x64
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Release|x64.Build.0 = Release|x64
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Release|x86.ActiveCfg = Release|Win32
+		{BCE0C070-FBA1-4D62-B808-0C276FC6B475}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -43,16 +43,6 @@ namespace std {
         }
     };
 };
-
-
-
-
-
-
-
-
-
-
     //定义一个缓冲区，里面有三个字段：位置和颜色，纹理坐标
     static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
         std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
@@ -94,6 +84,7 @@ namespace std {
         {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
         {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
         };
+
 
         //矩形索引
         const std::vector<uint16_t> indices = { 0, 1, 2, 2, 3, 0,4, 5, 6, 6, 7, 4 };
