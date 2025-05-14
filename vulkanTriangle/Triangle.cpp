@@ -112,57 +112,7 @@ void Triangle::cleanup()
 	glfwDestroyWindow(window);
 
 	glfwTerminate();
-	////释放管道，渲染通道
-	//vkDestroyPipeline(device, graphicsPipeline, nullptr);
-	//vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-	//vkDestroyRenderPass(device, renderPass, nullptr);
 
-	//for (unsigned int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-	//	vkDestroyBuffer(device, uniformBuffers[i], nullptr);//释放统一资源缓存
-	//	vkFreeMemory(device, uniformBuffersMemory[i], nullptr);//释放统一资源内存
-	//}
-
-	//vkDestroyDescriptorPool(device, descriptorPool, nullptr);//释放描述符池
-
-	//vkDestroySampler(device, textureSampler, nullptr);//释放采样器
-	//vkDestroyImageView(device, textureImageView, nullptr);//释放图像视图
-
-	//vkDestroyImage(device, textureImage, nullptr);
-	//vkFreeMemory(device, textureImageMemory, nullptr);
-
-	//vkDestroyImageView(device, colorImageView, nullptr);//释放多重采样视图
-	//vkDestroyImage(device, colorImage, nullptr);
-	//vkFreeMemory(device, colorImageMemory, nullptr);
-
-	//vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);//释放资源描述符布局
-
-	//vkDestroyBuffer(device, indexBuffer, nullptr);//释放索引缓存区
-	//vkFreeMemory(device, indexBufferMemory, nullptr);//释放索引内存
-
-	//vkDestroyBuffer(device, vertexBuffer, nullptr);//释放顶点缓存区
-	//vkFreeMemory(device, vertexBufferMemory, nullptr);//释放顶点内存
-
-	//for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-	//	vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-	//	vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-	//	vkDestroyFence(device, inFlightFences[i], nullptr);
-	//}
-
-	//vkDestroyCommandPool(device, commandPool, nullptr);
-
-	//vkDestroyDevice(device, nullptr);
-
-	//if (enableValidationLayers) {
-	//	//开启验证层，调用销毁验证层函数
-	//	DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-	//}
-
-	//vkDestroySurfaceKHR(instance, surface, nullptr);
-	//vkDestroyInstance(instance, nullptr);//销毁实例
-
-	//glfwDestroyWindow(window);
-
-	//glfwTerminate();
 }
 
 /**
