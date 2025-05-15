@@ -144,15 +144,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
-    <ClCompile Include="utils\Extension.cpp" />
+    <ClCompile Include="const\Data.cpp" />
+    <ClCompile Include="utils\VkExtensionUtils.cpp" />
+    <ClCompile Include="utils\VkQueueFamilyUtils.cpp" />
+    <ClCompile Include="VulkanDevice.cpp" />
     <ClCompile Include="VulkanInstance.cpp" />
-    <ClCompile Include="vulkanRenderer.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="const.h" />
-    <ClInclude Include="utils\Extension.h" />
+    <ClInclude Include="const\Data.h" />
+    <ClInclude Include="utils\VkExtensionUtils.h" />
+    <ClInclude Include="utils\VkQueueFamilyUtils.h" />
+    <ClInclude Include="VulkanDevice.h" />
     <ClInclude Include="VulkanInstance.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>

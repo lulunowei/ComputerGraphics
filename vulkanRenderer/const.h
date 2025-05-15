@@ -14,3 +14,9 @@
 #include<fstream>
 #include <chrono>//精准计时函数
 #include<unordered_map>
+
+#ifdef NDEBUG
+inline constexpr bool enableValidationLayers = false;
+#else
+inline constexpr bool enableValidationLayers = true;
+#endif

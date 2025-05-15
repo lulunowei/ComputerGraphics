@@ -11,9 +11,9 @@ public:
 
 
 	virtual ~Window() {
-		cleanup();
+		windowCleanup();
 	}
-	void cleanup();
+	void windowCleanup();
 
 	
 	bool getFramebufferResized() { return m_framebufferResized; }

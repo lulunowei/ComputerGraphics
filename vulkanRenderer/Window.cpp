@@ -13,7 +13,7 @@ Window::Window(int width, int height, std::string title):
 	initVulkanWindow();
 }
 
-void Window::cleanup()
+void Window::windowCleanup()
 {
 	glfwDestroyWindow(m_window);
 }
