@@ -144,6 +144,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="source\DescriptorSource.cpp" />
+    <ClCompile Include="source\FrameBufferSource.cpp" />
     <ClCompile Include="source\IndexResource.cpp" />
     <ClCompile Include="source\ColorResource.cpp" />
     <ClCompile Include="source\DepthResource.cpp" />
@@ -167,6 +169,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="source\DescriptorSource.h" />
+    <ClInclude Include="source\FrameBufferSource.h" />
     <ClInclude Include="source\IndexResource.h" />
     <ClInclude Include="source\ColorResource.h" />
     <ClInclude Include="source\DepthResource.h" />
