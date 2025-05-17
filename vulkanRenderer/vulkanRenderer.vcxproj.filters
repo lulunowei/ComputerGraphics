@@ -18,13 +18,13 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Window.cpp">
+    <ClCompile Include="init\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanInstance.cpp">
+    <ClCompile Include="init\VulkanInstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utils\VkExtensionUtils.cpp">
@@ -33,10 +33,49 @@
     <ClCompile Include="const\Data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="utils\VkQueueFamilyUtils.cpp">
+    <ClCompile Include="init\VulkanDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanDevice.cpp">
+    <ClCompile Include="render\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="init\ApplicationContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="render\VulkanSwapChainManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="render\VulkanRenderPassManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\VkResourceUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\VkFormatUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="render\VulkanCommandManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\IVulkanResourceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\TextureResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\DepthResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\UBOResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\ColorResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\VertexResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\IndexResource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,13 +83,13 @@
     <ClInclude Include="const.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Window.h">
+    <ClInclude Include="init\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanInstance.h">
+    <ClInclude Include="init\VulkanInstance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utils\VkExtensionUtils.h">
@@ -59,10 +98,49 @@
     <ClInclude Include="const\Data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="utils\VkQueueFamilyUtils.h">
+    <ClInclude Include="init\VulkanDevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanDevice.h">
+    <ClInclude Include="render\Renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="init\ApplicationContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="render\VulkanSwapChainManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="render\VulkanRenderPassManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\VkResourceUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\VkFormatUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="render\VulkanCommandManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\IVulkanResourceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\TextureResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\DepthResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\UBOResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\ColorResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\VertexResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\IndexResource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

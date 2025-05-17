@@ -29,6 +29,7 @@ void Application::initVulkan()
 		m_instance->getSurface()
 	);//选择物理设备
 	m_device->createLogicalDevice(m_instance->getSurface());//创建逻辑设备
+
 }
 
 void Application::mainloop()

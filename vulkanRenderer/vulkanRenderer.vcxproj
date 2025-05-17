@@ -144,23 +144,49 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="source\IndexResource.cpp" />
+    <ClCompile Include="source\ColorResource.cpp" />
+    <ClCompile Include="source\DepthResource.cpp" />
+    <ClCompile Include="init\ApplicationContext.cpp" />
     <ClCompile Include="const\Data.cpp" />
+    <ClCompile Include="source\IVulkanResourceManager.cpp" />
+    <ClCompile Include="render\Renderer.cpp" />
+    <ClCompile Include="source\TextureResource.cpp" />
+    <ClCompile Include="source\UBOResource.cpp" />
     <ClCompile Include="utils\VkExtensionUtils.cpp" />
-    <ClCompile Include="utils\VkQueueFamilyUtils.cpp" />
-    <ClCompile Include="VulkanDevice.cpp" />
-    <ClCompile Include="VulkanInstance.cpp" />
+    <ClCompile Include="init\VulkanDevice.cpp" />
+    <ClCompile Include="init\VulkanInstance.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Window.cpp" />
+    <ClCompile Include="init\Window.cpp" />
+    <ClCompile Include="render\VulkanSwapChainManager.cpp" />
+    <ClCompile Include="render\VulkanRenderPassManager.cpp" />
+    <ClCompile Include="utils\VkResourceUtils.cpp" />
+    <ClCompile Include="utils\VkFormatUtils.cpp" />
+    <ClCompile Include="render\VulkanCommandManager.cpp" />
+    <ClCompile Include="source\VertexResource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="source\IndexResource.h" />
+    <ClInclude Include="source\ColorResource.h" />
+    <ClInclude Include="source\DepthResource.h" />
+    <ClInclude Include="init\ApplicationContext.h" />
     <ClInclude Include="const.h" />
     <ClInclude Include="const\Data.h" />
+    <ClInclude Include="source\IVulkanResourceManager.h" />
+    <ClInclude Include="render\Renderer.h" />
+    <ClInclude Include="source\TextureResource.h" />
+    <ClInclude Include="source\UBOResource.h" />
     <ClInclude Include="utils\VkExtensionUtils.h" />
-    <ClInclude Include="utils\VkQueueFamilyUtils.h" />
-    <ClInclude Include="VulkanDevice.h" />
-    <ClInclude Include="VulkanInstance.h" />
-    <ClInclude Include="Window.h" />
+    <ClInclude Include="init\VulkanDevice.h" />
+    <ClInclude Include="init\VulkanInstance.h" />
+    <ClInclude Include="init\Window.h" />
+    <ClInclude Include="render\VulkanSwapChainManager.h" />
+    <ClInclude Include="render\VulkanRenderPassManager.h" />
+    <ClInclude Include="utils\VkResourceUtils.h" />
+    <ClInclude Include="utils\VkFormatUtils.h" />
+    <ClInclude Include="render\VulkanCommandManager.h" />
+    <ClInclude Include="source\VertexResource.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

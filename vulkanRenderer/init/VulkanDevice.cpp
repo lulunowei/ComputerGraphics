@@ -1,8 +1,8 @@
 #include "VulkanDevice.h"
-#include"utils/VkExtensionUtils.h"
+#include"../utils/VkExtensionUtils.h"
 void VulkanDevice::deviceCleanup()
 {
-	vkDestroyDevice(m_device, nullptr);
+	vkDestroyDevice(m_logicalDevice, nullptr);
 }
 
 /**
@@ -26,7 +26,7 @@ void VulkanDevice::pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
 	for (const auto& device : devices) {
 		if (isDeviceSuitable(device, surface)) {
 			m_physicalDevice = device;
-			//msaaSamples = getMaxUsableSampleCount();//选择设备支持的采样点
+			msaaSamples = getMaxUsableSampleCount();//选择设备支持的采样点
 			break;
 		}
 	}
@@ -85,13 +85,13 @@ void VulkanDevice::createLogicalDevice(VkSurfaceKHR surface)
 		createInfo.enabledLayerCount = 0;
 	}
 	//实现实例化逻辑设备
-	if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
+	if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_logicalDevice) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create logical device!");
 	}
 
 	//从逻辑设备获取图形队列和显示队列，{逻辑设备句柄，队列族索引，队列索引，队列句柄}
-	vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
-	vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_graphicsQueue);
+	vkGetDeviceQueue(m_logicalDevice, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
+	vkGetDeviceQueue(m_logicalDevice, indices.presentFamily.value(), 0, &m_graphicsQueue);
 
 
 }
@@ -130,6 +130,34 @@ bool VulkanDevice::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surfac
 		swapChainAdequate && // 3. 交换链支持至少一个格式和一个呈现模式
 		supportedFeatures.samplerAnisotropy;// 4. 支持各向异性过滤
 
+
+}
+
+/**
+ * @descrip 获取深度和颜色采样数
+ * 
+ * @functionName:  getMaxUsableSampleCount
+ * @functionType:    VkSampleCountFlagBits
+ * @return    
+ */
+VkSampleCountFlagBits VulkanDevice::getMaxUsableSampleCount()
+{
+	VkPhysicalDeviceProperties physicalDeviceProperties;
+	vkGetPhysicalDeviceProperties(m_physicalDevice, &physicalDeviceProperties);
+
+	//设备的最大采样值等同于颜色采样和深度采样位与运算，返回值是位掩码
+	VkSampleCountFlags counts =
+		physicalDeviceProperties.limits.framebufferColorSampleCounts &
+		physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+
+	if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+	if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+	if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+	if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+	if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+	if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+	return VK_SAMPLE_COUNT_1_BIT;
 
 }
 

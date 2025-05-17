@@ -145,6 +145,32 @@ bool VkExtensionUtils::checkDeviceExtensionSupport(VkPhysicalDevice device)
 }
 
 /**
+ * @descrip
+ * 
+ * @functionName:  findMemoryType
+ * @functionType:    uint32_t
+ * @param typeFilter
+ * @param properties
+ * @return    
+ */
+uint32_t VkExtensionUtils::findMemoryType(
+	VkPhysicalDevice device,
+	uint32_t typeFilter,
+	VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) &&
+			(memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+	throw std::runtime_error("failed to find suitable memory type!");
+}
+
+/**
  * @descrip 静态的回调函数
  * 
  * @functionName:  debugCallback

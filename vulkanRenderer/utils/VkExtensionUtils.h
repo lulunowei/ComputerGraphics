@@ -16,6 +16,8 @@ public:
 		const VkAllocationCallbacks* pAllocator);
 	static bool checkValidationLayerSupport();//检查一个或多个 Vulkan 验证层是否在系统的 Vulkan 安装中可用
 	static 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);//检查物理设备是否支持需要的扩展
+	static uint32_t findMemoryType(VkPhysicalDevice device,uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 
 
 private:
