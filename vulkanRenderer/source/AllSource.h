@@ -1,0 +1,10 @@
+#pragma once
+#include"ColorResource.h"
+#include"DepthResource.h"
+#include"IndexResource.h"
+#include"TextureResource.h"
+#include"UBOResource.h"
+#include"VertexResource.h"
+#include"GraphicsPipelineSource.h"
+#include"FrameBufferSource.h"
+#include"DescriptorSource.h"

@@ -1,5 +1,5 @@
 #include "ColorResource.h"
-
+#include"../init/AllHeads.h"
 ColorResource::ColorResource(
 	ApplicationContext& context,
 	VulkanCommandManager& cmdManager,
@@ -7,6 +7,7 @@ ColorResource::ColorResource(
 	IVulkanResourceManager(context, cmdManager),
 	m_swapChainManager(swapChainManager)
 {
+	createColorResources();
 }
 
 /**

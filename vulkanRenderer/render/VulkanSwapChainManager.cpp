@@ -1,10 +1,13 @@
 #include "VulkanSwapChainManager.h"
 #include<vulkan/vulkan.h>
+#include"../init/AllHeads.h"
+
 
 VulkanSwapChainManager::VulkanSwapChainManager(ApplicationContext& context):
 	m_context(context)
 {
-	
+	createSwapChain();//创建交换链
+	createImageViews();//创建图像视图
 }
 
 void VulkanSwapChainManager::swapChainCleanup()

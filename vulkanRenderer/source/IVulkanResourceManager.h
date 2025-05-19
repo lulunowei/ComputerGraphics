@@ -1,10 +1,14 @@
 #pragma once
 #include"../init/ApplicationContext.h"
 #include"../render/VulkanCommandManager.h"
+
+
 class IVulkanResourceManager
 {
 public:
-    IVulkanResourceManager(ApplicationContext& context, VulkanCommandManager& cmdManager)
+    IVulkanResourceManager(
+        ApplicationContext& context,
+        VulkanCommandManager& cmdManager)
         : m_context(context), m_cmdManager(cmdManager) {}
 
     ~IVulkanResourceManager() = default;
@@ -12,8 +16,8 @@ protected:
 	ApplicationContext& m_context;
     VulkanCommandManager& m_cmdManager;
 protected:
-    virtual void createResources() = 0;//创建资源
-    virtual void cleanupResources() = 0;//销毁资源
+    //virtual void createResources() = 0;//创建资源
+    //virtual void cleanupResources() = 0;//销毁资源
 
     void createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,

@@ -1,12 +1,17 @@
 #include "VulkanRenderPassManager.h"
 #include<vulkan/vulkan.h>
 #include"../const.h"
+#include"../init/AllHeads.h"
+
 
 VulkanRenderPassManager::VulkanRenderPassManager(
-	ApplicationContext& context):
+	ApplicationContext& context,
+	VkFormat colorFormat,
+	VkFormat depthFormat,
+	VkSampleCountFlagBits msaaSamples):
 	m_context(context)
 {
-
+	createRenderPass(colorFormat, depthFormat, msaaSamples);
 }
 
 /**
@@ -112,5 +117,12 @@ void VulkanRenderPassManager::createRenderPass(
 		throw std::runtime_error("failed to create render pass!");
 	}
 
+
+}
+
+void VulkanRenderPassManager::renderpassCleanup()
+{
+	vkDestroyRenderPass(m_context.deviceContext->getLogicalDevice(),
+		m_renderPass, nullptr);
 
 }

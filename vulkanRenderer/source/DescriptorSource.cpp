@@ -3,6 +3,17 @@
 #include<array>
 #include"../const/Data.h"
 
+void DescriptorSource::initDescriptorSetLayout(VkDevice device)
+{
+	createDescriptorSetLayout(device);
+}
+
+void DescriptorSource::initDescriptorSets( const DescriptorSetsCreateInfo& descriptorSetsInfo)
+{
+	createDescriptorPool(descriptorSetsInfo.device);
+	createDescriptorSets(descriptorSetsInfo);//创建描述符集
+}
+
 /**
  * @descrip 创建描述符布局
  * 

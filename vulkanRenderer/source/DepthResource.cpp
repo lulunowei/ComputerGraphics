@@ -1,5 +1,7 @@
 #include "DepthResource.h"
 #include"../utils/VkFormatUtils.h"
+#include"../init/AllHeads.h"
+
 DepthResource::DepthResource(
 	ApplicationContext& context,
 	VulkanCommandManager& cmdManager,
@@ -7,6 +9,7 @@ DepthResource::DepthResource(
 	IVulkanResourceManager(context, cmdManager),
 	m_swapChainManager(swapChainManager)
 {
+	createDepthResources();
 }
 /**
  * @descrip 创建深度资源

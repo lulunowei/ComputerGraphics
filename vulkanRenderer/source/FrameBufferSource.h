@@ -15,10 +15,11 @@ struct FramebufferCreateInfo {
 class FrameBufferSource
 {
 public:
-	FrameBufferSource() = default;
+	FrameBufferSource(const FramebufferCreateInfo& frameBufferCreateInfo);
 	~FrameBufferSource() = default;
 	void createFramebuffers(const FramebufferCreateInfo &frameBufferCreateInfo);
+	std::vector<VkFramebuffer> &getSwapChainFramebuffers() { return m_swapChainFramebuffers; }
 private:
-	std::vector<VkFramebuffer> swapChainFramebuffers;
+	std::vector<VkFramebuffer> m_swapChainFramebuffers;
 };
 

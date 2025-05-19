@@ -6,6 +6,9 @@ class UBOResource :
 public:
     UBOResource(ApplicationContext& context,
         VulkanCommandManager& cmdManager);
+    std::vector<VkBuffer> &getUniformBuffers() { return m_uniformBuffers; }
+    std::vector<void*> &getUniformBuffersMapped() { return m_uniformBuffersMapped; }
+    void UBOCleanup();
 private:
     void createUniformBuffers();//创建统一资源缓冲区
 

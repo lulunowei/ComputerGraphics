@@ -35,8 +35,8 @@ void Triangle::initVulkan()
 	createVertexBuffer();//创建顶点缓冲区
 	createIndexBuffer();//创建索引缓冲区
 	createUniformBuffers();//创建统一资源缓冲区
-	createDescriptorPool();//创建统一资源池
-	createDescriptorSets();//创建统一资源集合
+	createDescriptorPool();//创建描述符资源池
+	createDescriptorSets();//创建描述符资源集合
 	createCommandBuffers();//创建命令缓冲
 	createSyncObjects();//创建信号量
 }
@@ -1726,12 +1726,17 @@ void Triangle::loadModel() {
 		<< indices.size() << " indices." << std::endl;
 }
 
+
+
 /**
  * @descrip 加载矩形
  * 
  * @functionName:  loadRectangle
  * @functionType:    void
  */
+
+
+
 void Triangle::loadRectangle()
 {
 	for (auto vertex : rectangle::vertices) {

@@ -84,6 +84,18 @@
     <ClCompile Include="source\DescriptorSource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\GraphicsPipelineSource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\FileUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="const\LoadModels.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="render\VulkanSyncObjectsManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="const.h">
@@ -153,6 +165,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="source\DescriptorSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\GraphicsPipelineSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\FileUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="const\LoadModels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="render\VulkanSyncObjectsManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\AllSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="init\AllHeads.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

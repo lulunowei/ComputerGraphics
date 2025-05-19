@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -144,6 +144,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="const\LoadModels.cpp" />
+    <ClCompile Include="source\GraphicsPipelineSource.cpp" />
     <ClCompile Include="source\DescriptorSource.cpp" />
     <ClCompile Include="source\FrameBufferSource.cpp" />
     <ClCompile Include="source\IndexResource.cpp" />
@@ -155,6 +157,8 @@
     <ClCompile Include="render\Renderer.cpp" />
     <ClCompile Include="source\TextureResource.cpp" />
     <ClCompile Include="source\UBOResource.cpp" />
+    <ClCompile Include="render\VulkanSyncObjectsManager.cpp" />
+    <ClCompile Include="utils\FileUtils.cpp" />
     <ClCompile Include="utils\VkExtensionUtils.cpp" />
     <ClCompile Include="init\VulkanDevice.cpp" />
     <ClCompile Include="init\VulkanInstance.cpp" />
@@ -169,6 +173,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="const\LoadModels.h" />
+    <ClInclude Include="init\AllHeads.h" />
+    <ClInclude Include="source\AllSource.h" />
+    <ClInclude Include="source\GraphicsPipelineSource.h" />
     <ClInclude Include="source\DescriptorSource.h" />
     <ClInclude Include="source\FrameBufferSource.h" />
     <ClInclude Include="source\IndexResource.h" />
@@ -181,6 +189,8 @@
     <ClInclude Include="render\Renderer.h" />
     <ClInclude Include="source\TextureResource.h" />
     <ClInclude Include="source\UBOResource.h" />
+    <ClInclude Include="render\VulkanSyncObjectsManager.h" />
+    <ClInclude Include="utils\FileUtils.h" />
     <ClInclude Include="utils\VkExtensionUtils.h" />
     <ClInclude Include="init\VulkanDevice.h" />
     <ClInclude Include="init\VulkanInstance.h" />

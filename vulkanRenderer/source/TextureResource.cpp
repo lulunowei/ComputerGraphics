@@ -1,12 +1,17 @@
 #define STB_IMAGE_IMPLEMENTATION//stb头文件包含实现函数实现，只有#include会发生链接错误
 //#define TINYOBJLOADER_IMPLEMENTATION
 #include "TextureResource.h"
-//#include <tiny_obj_loader.h>
 #include <stb_image.h>
+#include"../const/Data.h"
+#include"../init/AllHeads.h"
+
 
 TextureResource::TextureResource(ApplicationContext& context, VulkanCommandManager& cmdManager):
 	IVulkanResourceManager(context, cmdManager)
 {
+	createTextureImage();//创建纹理图
+	createTextureImageView();//创建纹理视图
+	createTextureSampler();//创建纹理采样器
 }
 
 /**
@@ -56,7 +61,7 @@ void TextureResource::createTextureImage()
 		m_textureImage,
 		m_textureImageMemory
 	);
-	//转换图像布局
+	//转换图像布局，为了能通过把stagingbuffer复制到image
 	transitionImageLayout(m_textureImage,
 		m_mipLevels,
 		VK_FORMAT_R8G8B8A8_SRGB,
@@ -238,4 +243,16 @@ void TextureResource::generateMipmaps(VkImage image, VkFormat imageFormat, int32
 		0, nullptr,
 		1, &barrier);
 	m_cmdManager.endSingleTimeCommands(commandbuffer);
+}
+
+void TextureResource::textureCleanup()
+{
+	vkDestroySampler(m_context.deviceContext->getLogicalDevice(), m_textureSampler, nullptr);
+
+	vkDestroyImageView(m_context.deviceContext->getLogicalDevice(),
+		m_textureImageView, nullptr);
+	vkDestroyImage(m_context.deviceContext->getLogicalDevice(),
+		m_textureImage, nullptr);
+	vkFreeMemory(m_context.deviceContext->getLogicalDevice(),
+		m_textureImageMemory, nullptr);
 }

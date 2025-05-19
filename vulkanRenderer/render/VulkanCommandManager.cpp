@@ -1,8 +1,12 @@
 #include "VulkanCommandManager.h"
+#include"../init/AllHeads.h"
+
 
 VulkanCommandManager::VulkanCommandManager(ApplicationContext& context):
 	m_context(context)
 {
+	createCommandPool();
+	createCommandBuffers();
 }
 /**
  * @descrip 创建命令池
@@ -112,5 +116,17 @@ void VulkanCommandManager::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 	vkQueueWaitIdle(m_context.deviceContext->getGraphicsQueue());//等待GPU完成所有任务，CPU阻塞
 
 	vkFreeCommandBuffers(m_context.deviceContext->getLogicalDevice(), m_commandPool, 1, &commandBuffer);
+
+}
+
+/**
+ * @descrip 销毁池
+ * 
+ * @functionName:  commandCleanup
+ * @functionType:    void
+ */
+void VulkanCommandManager::commandCleanup()
+{
+	vkDestroyCommandPool(m_context.deviceContext->getLogicalDevice(), m_commandPool, nullptr);
 
 }

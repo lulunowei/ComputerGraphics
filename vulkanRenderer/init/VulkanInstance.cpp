@@ -1,6 +1,13 @@
 #include "VulkanInstance.h"
 #include"../utils/VkExtensionUtils.h"
 
+VulkanInstance::VulkanInstance(GLFWwindow* m_window)
+{
+	createInstance();//创建vulkan实例
+	setupDebugMessenger();//debug信息
+	createSurface(m_window);
+}
+
 void VulkanInstance::intanceCleanup()
 {
 	if (enableValidationLayers) {

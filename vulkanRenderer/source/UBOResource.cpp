@@ -1,11 +1,34 @@
 #include "UBOResource.h"
 #include"../const/Data.h"
+#include"../init/AllHeads.h"
 
 UBOResource::UBOResource
 (ApplicationContext& context, VulkanCommandManager& cmdManager):
 	IVulkanResourceManager(context, cmdManager)
 {
+	createUniformBuffers();
 }
+
+void UBOResource::UBOCleanup()
+{
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		vkDestroyBuffer(m_context.deviceContext->getLogicalDevice(),
+			m_uniformBuffers[i], nullptr);
+		vkFreeMemory(m_context.deviceContext->getLogicalDevice(),
+			m_uniformBuffersMemory[i], nullptr);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * @descrip 创建统一资源缓冲区

@@ -1,5 +1,8 @@
 #pragma once
+#include<vulkan/vulkan.h>
+#include<vector>
 #include"../init/ApplicationContext.h"
+
 class VulkanCommandManager
 {
 public:
@@ -13,9 +16,8 @@ public:
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);//单次结束录制命令
 
 	VkCommandPool getCommandPool() { return m_commandPool; }
-	std::vector<VkCommandBuffer> getCommandBuffers() { return m_commandBuffers; }
-
-
+	std::vector<VkCommandBuffer> &getCommandBuffers() { return m_commandBuffers; }
+	void commandCleanup();
 private:
 	ApplicationContext& m_context;
 

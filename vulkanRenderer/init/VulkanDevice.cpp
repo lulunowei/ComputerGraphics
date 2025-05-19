@@ -1,5 +1,10 @@
 #include "VulkanDevice.h"
 #include"../utils/VkExtensionUtils.h"
+VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
+{
+	pickPhysicalDevice(instance, surface);//创建物理设备
+	createLogicalDevice(surface);//创建逻辑设备
+}
 void VulkanDevice::deviceCleanup()
 {
 	vkDestroyDevice(m_logicalDevice, nullptr);
@@ -91,7 +96,7 @@ void VulkanDevice::createLogicalDevice(VkSurfaceKHR surface)
 
 	//从逻辑设备获取图形队列和显示队列，{逻辑设备句柄，队列族索引，队列索引，队列句柄}
 	vkGetDeviceQueue(m_logicalDevice, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
-	vkGetDeviceQueue(m_logicalDevice, indices.presentFamily.value(), 0, &m_graphicsQueue);
+	vkGetDeviceQueue(m_logicalDevice, indices.presentFamily.value(), 0, &m_presentQueue);
 
 
 }

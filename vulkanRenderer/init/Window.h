@@ -16,17 +16,19 @@ public:
 	void windowCleanup();
 
 	
-	bool getFramebufferResized() { return m_framebufferResized; }
+	bool &getFramebufferResized() { return m_framebufferResized; }
 	void setFramebufferResized(bool framebufferResized) { m_framebufferResized = framebufferResized; }
 	
 	GLFWwindow* getWindow() const { return m_window; }
+	bool m_framebufferResized = false;//窗口是否变化
+
 
 private:
 	int m_width;
 	int m_height;
     std::string m_title;
 	GLFWwindow* m_window = nullptr;
-	bool m_framebufferResized = false;//窗口是否变化
+
 
 	void initVulkanWindow();
 };

@@ -6,7 +6,7 @@
 class VulkanDevice
 {
 public:
-	VulkanDevice() = default;
+	VulkanDevice(VkInstance instance, VkSurfaceKHR surface);
 	~VulkanDevice() = default;
 	void deviceCleanup();
 
@@ -20,11 +20,11 @@ public:
 	void pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);//选择一个物理设备
 	void createLogicalDevice(VkSurfaceKHR surface);//创建逻辑设备
 	
-	VkDevice getLogicalDevice() { return m_logicalDevice; }
-	VkQueue getGraphicsQueue() { return m_graphicsQueue; }
-	VkQueue getPresentQueue() { return m_presentQueue; }
-	VkPhysicalDevice getPhysicalDevice() { return m_physicalDevice; }
-	VkSampleCountFlagBits getMsaaSamples() { return msaaSamples; }
+	VkDevice &getLogicalDevice() { return m_logicalDevice; }
+	VkQueue &getGraphicsQueue() { return m_graphicsQueue; }
+	VkQueue &getPresentQueue() { return m_presentQueue; }
+	VkPhysicalDevice &getPhysicalDevice() { return m_physicalDevice; }
+	VkSampleCountFlagBits &getMsaaSamples() { return msaaSamples; }
 
 private:
 	bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);

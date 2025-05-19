@@ -1,5 +1,7 @@
 #include "IndexResource.h"
 #include"../const/Data.h"
+#include"../init/AllHeads.h"
+
 IndexResource::IndexResource(ApplicationContext& context, VulkanCommandManager& cmdManager):
 	IVulkanResourceManager(context, cmdManager)
 
