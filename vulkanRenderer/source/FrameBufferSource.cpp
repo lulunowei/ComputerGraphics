@@ -32,7 +32,7 @@ void FrameBufferSource::createFramebuffers(const FramebufferCreateInfo& frameBuf
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = frameBufferCreateInfo.renderPass;//一个framebuffer对应一个renderpass
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(frameBufferCreateInfo.attachments.size());
-		framebufferInfo.pAttachments = frameBufferCreateInfo.attachments.data();
+		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = frameBufferCreateInfo.swapChainExtent.width;
 		framebufferInfo.height = frameBufferCreateInfo.swapChainExtent.height;
 		framebufferInfo.layers = 1;
