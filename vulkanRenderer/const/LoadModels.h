@@ -12,6 +12,9 @@ public:
 		std::vector<Vertex>& vertices,
 		std::vector<uint32_t>& indices
 	);//加载四边形
-
+	static void loadCubes(
+		std::vector<Vertex>& vertices,
+		std::vector<uint32_t>& indices
+	);//加载立方体
 };
 

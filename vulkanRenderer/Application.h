@@ -4,14 +4,16 @@
 //#include"init/VulkanDevice.h"
 #include"init/ApplicationContext.h"
 #include"render/Renderer.h"
+#include"Uncopyable.h"
 
 
-class Application
+class Application:
+	private Uncopyable
 {
 public:
 
 	Application();
-	virtual ~Application();
+	 ~Application();
 
 	void run();
 

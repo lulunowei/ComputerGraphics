@@ -6,6 +6,7 @@
 #include"VulkanCommandManager.h"
 #include"VulkanSyncObjectsManager.h"
 #include"../source/AllSource.h"
+#include"../const/Data.h"
 class Renderer
 {
 public:
@@ -34,6 +35,7 @@ private:
 	void recreateSwapChain();//重新绘制交换链
 	void cleanupSwapChain();//清理交换链
 	void updateUniformBuffer(uint32_t currentImage);//更新全局数据
+	void updateCubeUniformBuffer(uint32_t currentImage);//更新立方体全局数据
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);//记录命令缓冲区
 
 };

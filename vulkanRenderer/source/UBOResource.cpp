@@ -52,7 +52,13 @@ void UBOResource::createUniformBuffers()
 			m_uniformBuffers[i], //逻辑内存
 			m_uniformBuffersMemory[i]);//物理内存
 		//持久映射，uniformBuffersMapped指向缓冲区数据
-		vkMapMemory(m_context.deviceContext->getLogicalDevice(), m_uniformBuffersMemory[i], 0, bufferSize, 0, &m_uniformBuffersMapped[i]);
+		vkMapMemory(
+			m_context.deviceContext->getLogicalDevice(),
+			m_uniformBuffersMemory[i],
+			0,
+			bufferSize, 
+			0,
+			&m_uniformBuffersMapped[i]);
 	}
 
 }

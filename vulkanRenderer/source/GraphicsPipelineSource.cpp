@@ -47,13 +47,11 @@ void GraphicsPipelineSource::createGraphicsPipeline(const GraphicPipeLineCreateI
 	auto attributeDescriptions = getAttributeDescriptions();
 
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	//vertexInputInfo.vertexBindingDescriptionCount = 0;
-	//vertexInputInfo.vertexAttributeDescriptionCount = 0;
 
 	//绑定描述和属性
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.vertexBindingDescriptionCount = 2;
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());//顶点属性数量
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;//描述顶点结构
+	vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();//描述顶点结构
 	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();//描述结构体字段
 
 

@@ -94,3 +94,25 @@ void LoadModels::loadRectangle(
 		indices.push_back(indice);
 	}
 }
+
+/**
+ * @descrip 加载立方体
+ * 
+ * @functionName:  loadCubes
+ * @functionType:    void
+ * @param vertices
+ * @param indices
+ */
+void LoadModels::loadCubes(
+	std::vector<Vertex>& vertices,
+	std::vector<uint32_t>& indices
+)
+{
+	//加载顶点属性
+	for (auto vertex : cube::cubeVertices) {
+		vertices.push_back(vertex);
+	}
+	//for (auto indice : cube::cubeIndices) {
+	//	indices.push_back(indice);
+	//}
+}

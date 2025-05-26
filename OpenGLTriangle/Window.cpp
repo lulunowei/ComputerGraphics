@@ -1,19 +1,5 @@
 #include "Window.h"
 
-void Window::run()
-{
-    initWindow();
-    while (!glfwWindowShouldClose(m_window))
-    {
-        processInput(m_window);
-        render.render();
-        glfwSwapBuffers(m_window);
-        glfwPollEvents();//检查鼠标按键
-        
-    }
-    glfwTerminate();
-}
-
 void Window::initWindow()
 {
     glfwInit();
@@ -44,6 +30,11 @@ void Window::processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+}
+
+Window::Window()
+{
+    initWindow();
 }
 
 void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height)

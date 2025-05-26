@@ -1,9 +1,8 @@
 #include"const.h"
-#include"Window.h"
+#include"Application.h"
 int main()
 {
-    Window app;
-    Render renderer;
+    Application app;
     try {
         app.run();
     }

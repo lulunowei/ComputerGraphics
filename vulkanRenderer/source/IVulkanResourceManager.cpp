@@ -38,7 +38,8 @@ void IVulkanResourceManager::createBuffer(
 	}
 	//2.查询传入参数buffer的内存需求
 	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_context.deviceContext->getLogicalDevice(), 
+	vkGetBufferMemoryRequirements(
+		m_context.deviceContext->getLogicalDevice(), 
 		buffer, 
 		&memRequirements);
 

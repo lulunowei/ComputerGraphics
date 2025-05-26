@@ -76,7 +76,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\DGWrap\DGEngine\Thirdparty;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -94,7 +94,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\DGWrap\DGEngine\Thirdparty;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -112,7 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\DGWrap\DGEngine\Thirdparty;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -130,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Environment\cppsoft\glfw\include;C:\Environment\cppsoft\stb_master;C:\code\C++\Project\DGWrap\DGEngine\Thirdparty;C:\code\C++\Project\CG\ComputerGraphics\OpenGLTriangle\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -143,21 +143,37 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="glad.c" />
+    <ClCompile Include="shaders\Shader.cpp" />
+    <ClCompile Include="source\Texture.cpp" />
     <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="OpenGLTriangle.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Render.cpp" />
-    <ClCompile Include="Utils\ShaderTool.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="notebook\0513.md" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
     <ClInclude Include="const.h" />
+    <ClInclude Include="include\glad\glad.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="include\KHR\khrplatform.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="shaders\Shader.h" />
+    <ClInclude Include="source\Texture.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Render.h" />
-    <ClInclude Include="Utils\ShaderTool.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

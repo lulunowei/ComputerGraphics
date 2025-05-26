@@ -189,7 +189,7 @@ void Renderer::drawFrame()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	updateUniformBuffer(currentFrame);//更新全局数据
+	updateCubeUniformBuffer(currentFrame);//更新全局数据
 
 	// Only reset the fence if we are submitting work,延迟重置,仅在确认提交任务前重置栅栏，防止重新创建交换链的时候直接返回，导致fence永远不能重置
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);//重置栅栏
@@ -349,7 +349,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
 	float time = std::chrono::duration<float, std::chrono::seconds::period>
 		(currentTime - startTime).count();
 
-	UniformBufferObject ubo{};
+	UniformBufferObjectSingle ubo{};
 
 
 	ubo.model = glm::rotate(glm::mat4(1.0f),//单位矩阵
@@ -363,7 +363,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
 
 	ubo.view = glm::lookAt(
 		//glm::vec3(2.0f, 50.0f, 2.0f),   // 相机位置：y=100，在模型正上方
-		glm::vec3(2.0f, 2.0f, 2.0f),   // 相机位置：y=100，在模型正上方
+		glm::vec3(2.0f, 500.0f, 2.0f),   // 相机位置：y=100，在模型正上方
 		glm::vec3(0.0f, 0.0f, 0.0f),     // 看向原点
 		glm::vec3(0.0f, 0.0f, 1.0f));   // 向下看（Z轴作为上方向）
 
@@ -372,6 +372,56 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
 		m_swapchainManager->getSwapChainExtent().width / (float)m_swapchainManager->getSwapChainExtent().height,
 		1.0f,
 		500.0f);
+
+	ubo.time = time;//更新时间
+
+	//翻转 Y 轴缩放因子，与OPENGL相反
+	ubo.proj[1][1] *= -1;
+	//复制数据到统一缓冲区，uniformBuffersMapped指针指向该内存
+	memcpy(m_SourceContext->UBOResourceContext->getUniformBuffersMapped()[currentImage], &ubo, sizeof(ubo));
+
+}
+
+/**
+ * @descrip 更新立方体全局信息
+ * 
+ * @functionName:  updateCubeUniformBuffer
+ * @functionType:    void
+ * @param currentImage
+ */
+void Renderer::updateCubeUniformBuffer(uint32_t currentImage)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	//以浮点精度计算自渲染开始以来的秒数
+	float time = std::chrono::duration<float, std::chrono::seconds::period>
+		(currentTime - startTime).count();
+
+	UniformBufferObject ubo{};
+
+	//1.创建视图矩阵
+	const float radius = 10.0f;
+	float camX = sin(glfwGetTime()) * radius;
+	float camZ = cos(glfwGetTime()) * radius;
+	
+	ubo.view = glm::lookAt(
+		glm::vec3(camX, 0.0f, camZ),//镜头坐标
+		glm::vec3(0.0f, 0.0f, 0.0f),//目标
+		glm::vec3(0.0f, 1.0f, 0.0f));//上方向
+	ubo.view = glm::translate(ubo.view, glm::vec3(0.0f, 0.0f, -3.0f));//移动整个场景
+
+	//2.创建投影矩阵
+	glm::mat4 projection;
+	ubo.proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
+	//3.创建模型矩阵
+	for (unsigned int i = 0; i < 10; i++) {
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, cube::cubePositions[i]);
+		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f) * (i + 1), glm::vec3(0.5f, 1.0f, 0.0f));
+		ubo.model[i] = model;
+	}
 
 	ubo.time = time;//更新时间
 
@@ -437,11 +487,13 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	scissor.extent = m_swapchainManager->getSwapChainExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	VkBuffer vertexBuffers[] = { m_SourceContext->vertexResourceContext->getVertexBuffer()};
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);//绑定顶点缓冲
-
-	vkCmdBindIndexBuffer(commandBuffer, m_SourceContext->vertexResourceContext->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);//绑定索引缓冲
+	VkBuffer vertexBuffers[] = { 
+		m_SourceContext->vertexResourceContext->getVertexBuffer(),
+		m_SourceContext->vertexResourceContext->getInstanceBuffer()
+	};
+	VkDeviceSize offsets[] = { 0 ,0};
+	vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);//绑定顶点缓冲
+	//vkCmdBindIndexBuffer(commandBuffer, m_SourceContext->vertexResourceContext->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);//绑定索引缓冲
 	//使用描述符集，每帧的描述符集绑定到对应着色器
 	vkCmdBindDescriptorSets(commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,//绑定到图形管线
@@ -452,7 +504,12 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 		0,
 		nullptr);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_SourceContext->vertexResourceContext->getIndices().size()), 1, 0, 0, 0);
+	//vkCmdDrawIndexed(
+	//	commandBuffer,
+	//	//static_cast<uint32_t>(m_SourceContext->vertexResourceContext->getIndices().size()),
+	//	36,
+	//	1, 0, 0, 0);
+	vkCmdDraw(commandBuffer, 36, 10, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);//结束渲染通道
 

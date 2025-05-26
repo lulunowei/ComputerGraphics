@@ -155,7 +155,10 @@ void TextureResource::createTextureSampler()
 void TextureResource::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, int32_t mipLevels)
 {
 	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(m_context.deviceContext->getPhysicalDevice(), imageFormat, &formatProperties);
+	vkGetPhysicalDeviceFormatProperties(
+		m_context.deviceContext->getPhysicalDevice(),
+		imageFormat,
+		&formatProperties);
 
 	//检查对线性过滤功能的支持
 	if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {

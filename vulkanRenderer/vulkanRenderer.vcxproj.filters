@@ -48,9 +48,6 @@
     <ClCompile Include="render\VulkanRenderPassManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="utils\VkResourceUtils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utils\VkFormatUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -96,6 +93,9 @@
     <ClCompile Include="render\VulkanSyncObjectsManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Uncopyable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="const.h">
@@ -129,9 +129,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="render\VulkanRenderPassManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\VkResourceUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utils\VkFormatUtils.h">
@@ -185,5 +182,11 @@
     <ClInclude Include="init\AllHeads.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Uncopyable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="notebook\0513.md" />
   </ItemGroup>
 </Project>
